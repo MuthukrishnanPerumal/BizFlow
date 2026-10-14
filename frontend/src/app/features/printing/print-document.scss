@@ -1,0 +1,93 @@
+:host {
+  display: block;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.print-sheet {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  color: #15202b;
+  padding: 24px;
+}
+
+.print-sheet h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.print-sheet table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+
+.print-sheet th,
+.print-sheet td {
+  border-bottom: 1px solid #d5dde5;
+  padding: 6px 4px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.print-sheet th:nth-child(n + 3),
+.print-sheet td:nth-child(n + 3) {
+  text-align: right;
+}
+
+.print-head,
+.print-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.print-meta {
+  margin: 16px 0;
+}
+
+.totals {
+  min-width: 240px;
+}
+
+.totals div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.totals .grand {
+  font-weight: 700;
+}
+
+.footer-note {
+  margin-top: 24px;
+  border-top: 1px solid #d5dde5;
+  padding-top: 8px;
+  font-size: 12px;
+  color: #5c6b7a;
+}
+
+@media print {
+  .no-print,
+  .toolbar {
+    display: none !important;
+  }
+
+  .print-sheet {
+    max-width: none;
+    padding: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .print-head,
+  .print-meta {
+    flex-direction: column;
+  }
+}

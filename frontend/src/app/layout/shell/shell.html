@@ -1,0 +1,22 @@
+<a class="bf-skip" href="#main">Skip to content</a>
+<div class="bf-shell" [class.is-collapsed]="!layout.showLabels()" [class.is-mobile]="layout.mobile()">
+  <app-loading-indicator [active]="loading.active()" />
+  <mat-sidenav-container class="bf-container">
+    <mat-sidenav
+      class="bf-sidenav"
+      aria-label="Primary"
+      [mode]="layout.sidenavMode()"
+      [opened]="layout.sidenavOpened()"
+      (closedStart)="onSidenavClosed()"
+    >
+      <app-sidebar />
+    </mat-sidenav>
+    <mat-sidenav-content class="bf-content-wrap">
+      <app-header />
+      <main id="main" class="bf-main">
+        <router-outlet />
+      </main>
+      <app-footer />
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>

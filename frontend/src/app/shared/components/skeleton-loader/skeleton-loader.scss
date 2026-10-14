@@ -1,0 +1,30 @@
+.bf-skeleton {
+  display: grid;
+  gap: var(--bf-space-2);
+  padding: var(--bf-space-4);
+}
+
+span {
+  display: block;
+  height: 14px;
+  border-radius: var(--bf-radius-sm);
+  background: var(--bf-skeleton);
+}
+
+span:nth-child(odd) {
+  width: 92%;
+}
+
+span:nth-child(even) {
+  width: 70%;
+}
+
+.is-table span {
+  height: 36px;
+  width: 100%;
+}
+
+.is-table span:first-child {
+  height: 28px;
+  background: color-mix(in srgb, var(--bf-skeleton) 70%, var(--bf-surface-muted));
+}

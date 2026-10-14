@@ -1,0 +1,32 @@
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader [rows]="4" />
+  } @else if (rows().length === 0) {
+    <app-empty-state [title]="emptyTitle()" [message]="emptyMessage()" />
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          @for (column of columns(); track column.id) {
+            <th [class.end]="column.align === 'end'">{{ column.header }}</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track rowId()(row)) {
+          <tr>
+            @for (column of columns(); track column.id) {
+              <td [attr.data-label]="column.header" [class.end]="column.align === 'end'" [class.num]="column.align === 'end'">
+                @if (column.kind === 'status') {
+                  <app-status-badge [status]="column.value(row) ?? 'Unknown'" />
+                } @else {
+                  {{ column.value(row) }}
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

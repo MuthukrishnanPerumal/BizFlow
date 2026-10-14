@@ -1,0 +1,63 @@
+<app-page-header title="Out of stock" subtitle="Products with nothing left to sell. Purchase or adjust them to bring them back.">
+  <a mat-stroked-button routerLink="/purchases/new">New purchase</a>
+</app-page-header>
+<app-inventory-nav />
+<app-filter-panel title="Filters">
+  <div class="filters">
+    <app-search-bar placeholder="Search product, code, barcode, or category" (queryChange)="onSearch($event)" />
+    <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+      <mat-label>Location</mat-label>
+      <mat-select [value]="locationId() ?? ''" (selectionChange)="onLocation($event.value)">
+        <mat-option value="">All locations</mat-option>
+        @for (location of locations(); track location.id) {
+          <mat-option [value]="location.id">{{ location.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+</app-filter-panel>
+@if (health(); as board) {
+  <p class="hint">{{ board.outOfStock }} products are out of stock. {{ board.lowStock }} are at or below the reorder level.</p>
+}
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader layout="table" [rows]="6" />
+  } @else if (failed()) {
+    <app-error-state title="Could not load out-of-stock products" [message]="errorMessage()" (retry)="load()" />
+  } @else if (rows().length === 0) {
+    <app-empty-state title="Nothing is out of stock" message="Every tracked product still has available quantity. Products at zero will show here." />
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th><button type="button" class="sort" (click)="toggleSort('productName')">Product <mat-icon>{{ sortMark('productName') }}</mat-icon></button></th>
+          <th>Category</th>
+          <th>Last purchase</th>
+          <th>Last sale</th>
+          <th class="end">Current</th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('reorderLevel')">Reorder <mat-icon>{{ sortMark('reorderLevel') }}</mat-icon></button></th>
+          <th class="end">Shortage</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.productId) {
+          <tr>
+            <td>
+              <a [routerLink]="['/inventory/products', row.productId]">{{ row.productName }}</a>
+              <small>{{ row.productCode }}</small>
+            </td>
+            <td>{{ row.categoryName }}</td>
+            <td>{{ date(row.lastPurchase) }}</td>
+            <td>{{ date(row.lastSale) }}</td>
+            <td class="end">{{ qty(row.currentStock) }}</td>
+            <td class="end">{{ qty(row.reorderLevel) }}</td>
+            <td class="end">{{ qty(row.shortageQuantity) }}</td>
+            <td><app-status-badge [status]="row.status" /></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />
+  }
+</div>

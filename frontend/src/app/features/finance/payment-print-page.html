@@ -1,0 +1,55 @@
+@if (failed()) {
+  <app-error-state title="Could not load receipt" [message]="errorMessage()" actionLabel="Back" />
+} @else if (payment(); as row) {
+  <div class="no-print toolbar">
+    <a mat-button [routerLink]="['/payments', party(), row.id]">Back</a>
+    <button mat-flat-button color="primary" type="button" (click)="print()">Print</button>
+  </div>
+  <article class="print-sheet">
+    <header class="print-head">
+      <div>
+        <app-letterhead />
+        <h1>{{ party() === 'customer' ? 'Payment receipt' : 'Payment voucher' }}</h1>
+        <p>{{ row.paymentNumber }}</p>
+      </div>
+      <div>
+        <p>Date {{ date(row.paymentDate) }}</p>
+        <p>Method {{ row.paymentMethod }}</p>
+        <p>Status {{ row.status }}</p>
+      </div>
+    </header>
+    <section class="print-meta">
+      <div>
+        <strong>{{ row.partyName }}</strong>
+        <p>{{ row.partyCode }}</p>
+        <p>Reference {{ row.referenceNumber || '—' }}</p>
+      </div>
+      <dl class="totals">
+        <div class="grand"><dt>Amount</dt><dd>{{ money(row.amount) }}</dd></div>
+        <div><dt>Allocated</dt><dd>{{ money(row.allocatedAmount) }}</dd></div>
+        <div><dt>Unallocated</dt><dd>{{ money(row.unallocatedAmount) }}</dd></div>
+      </dl>
+    </section>
+    <table>
+      <thead>
+        <tr>
+          <th>Document</th>
+          <th>Type</th>
+          <th>Amount</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of row.allocations; track item.invoiceId) {
+          <tr>
+            <td>{{ item.documentNumber }}</td>
+            <td>{{ item.documentType }}</td>
+            <td>{{ money(item.amount) }}</td>
+            <td>{{ item.status }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <p class="footer-note">{{ row.notes }} This receipt omits navigation and action buttons.</p>
+  </article>
+}

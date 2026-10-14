@@ -1,0 +1,317 @@
+@if (!allowed()) {
+  <app-page-header title="Dashboard" subtitle="Business overview" />
+  <app-empty-state
+    title="Report access required"
+    message="Dashboard figures are available to accounts with report view permission."
+  />
+} @else {
+  <app-page-header title="Dashboard" [subtitle]="subtitle()">
+    <button type="button" mat-stroked-button (click)="load()" [disabled]="loading()">Refresh</button>
+  </app-page-header>
+
+  <div class="period-bar">
+    <div class="presets" role="group" aria-label="Reporting period">
+      @for (option of presets; track option.id) {
+        <button
+          type="button"
+          class="preset"
+          [class.is-selected]="preset() === option.id"
+          [attr.aria-pressed]="preset() === option.id"
+          (click)="onPreset(option.id)"
+        >
+          {{ option.label }}
+        </button>
+      }
+    </div>
+    @if (preset() === 'CUSTOM') {
+      <div class="custom">
+        <app-iso-date-field label="From" subscriptSizing="dynamic" [value]="from()" (committed)="onFrom($event)" />
+        <app-iso-date-field label="To" subscriptSizing="dynamic" [value]="to()" (committed)="onTo($event)" />
+      </div>
+    }
+  </div>
+
+  @if (preset() === 'CUSTOM' && (!from() || !to())) {
+    <app-empty-state title="Choose a custom range" message="Select a start date and an end date to load this view." />
+  } @else if (loading() && !data()) {
+    <div class="skeleton" role="status" aria-live="polite" aria-label="Loading dashboard">
+      <span class="sk sk-title"></span>
+      <div class="sk-summary">
+        @for (item of skeletonKpis; track item) {
+          <span class="sk sk-kpi"></span>
+        }
+      </div>
+      <span class="sk sk-title"></span>
+      <div class="sk-actions">
+        @for (item of skeletonActions; track item) {
+          <span class="sk sk-action"></span>
+        }
+      </div>
+      <span class="sk sk-title"></span>
+      <span class="sk sk-attention"></span>
+      <span class="sk sk-title"></span>
+      <div class="sk-charts">
+        @for (item of skeletonCharts; track item) {
+          <span class="sk sk-chart"></span>
+        }
+      </div>
+      <span class="sk sk-title"></span>
+      <span class="sk sk-activity"></span>
+    </div>
+  } @else if (failed() && !data()) {
+    <app-error-state title="Dashboard is unavailable" [message]="errorMessage()" (retry)="load()" />
+  } @else if (data(); as board) {
+    <div class="board" [class.is-updating]="loading()" [attr.aria-busy]="loading()">
+      @if (failed()) {
+        <p class="refresh-error" role="alert">
+          {{ errorMessage() }}
+          <button type="button" (click)="load()">Retry</button>
+        </p>
+      }
+
+      <section aria-labelledby="summary-heading">
+        <h2 id="summary-heading">Business summary</h2>
+        <div class="summary">
+          @for (item of kpis(); track item.id) {
+            <article>
+              <div class="kpi-top">
+                <span class="label">{{ item.label }}</span>
+                @if (item.spark) {
+                  <svg class="spark" viewBox="0 0 88 28" aria-hidden="true">
+                    <polyline [attr.points]="item.spark" />
+                  </svg>
+                }
+              </div>
+              <strong [class.is-negative]="item.negative">{{ item.value }}</strong>
+              <p class="meta">{{ item.period }}</p>
+              @if (item.trend) {
+                <p class="trend">{{ item.trend }}</p>
+              }
+              @if (item.actionRoute) {
+                <a class="kpi-action" [routerLink]="item.actionRoute">{{ item.actionLabel }}</a>
+              }
+            </article>
+          }
+        </div>
+      </section>
+
+      @if (showQuickActions()) {
+        <section aria-labelledby="actions-heading">
+          <h2 id="actions-heading">Quick actions</h2>
+          <nav class="actions" aria-label="Quick actions">
+            @for (action of quickActions; track action.route) {
+              <a *appHasPermission="action.permission" class="action" [routerLink]="action.route">
+                <mat-icon aria-hidden="true">{{ action.icon }}</mat-icon>
+                <span>
+                  <strong>{{ action.label }}</strong>
+                  <small>{{ action.detail }}</small>
+                </span>
+              </a>
+            }
+          </nav>
+        </section>
+      }
+
+      <section aria-labelledby="attention-heading">
+        <h2 id="attention-heading">Attention required</h2>
+        <div class="queue">
+          @if (attention().length === 0) {
+            <div class="clear">
+              <h3>Nothing needs attention</h3>
+              <p>Stock, open balances, drafts, and alerts are clear for this period.</p>
+            </div>
+          } @else {
+            @for (item of attention(); track item.id) {
+              <a [routerLink]="item.route" [queryParams]="item.query ?? null">
+                <span>
+                  <strong>{{ item.title }}</strong>
+                  <small>{{ item.detail }}</small>
+                </span>
+                <mat-icon aria-hidden="true">chevron_right</mat-icon>
+              </a>
+            }
+          }
+        </div>
+      </section>
+
+      <section aria-labelledby="trends-heading">
+        <h2 id="trends-heading">Business trends</h2>
+        <div class="trends">
+          <app-metric-chart title="Sales trend" [caption]="grainCaption()" [empty]="salesChartEmpty()" [series]="salesSeries()" />
+          <app-metric-chart title="Purchase trend" [caption]="grainCaption()" [empty]="purchasesChartEmpty()" [series]="purchaseSeries()" />
+          <app-metric-chart title="Profit trend" [caption]="'Net profit · ' + grainCaption().toLowerCase()" [empty]="profitChartEmpty()" [series]="profitSeries()" />
+        </div>
+      </section>
+
+      <section aria-labelledby="activity-heading">
+        <div class="activity-head">
+          <h2 id="activity-heading">Recent activity</h2>
+          @if (activityLink(); as link) {
+            <a class="view-all" [routerLink]="link.route">{{ link.label }}</a>
+          }
+        </div>
+        <div class="activity">
+          <div class="tabs" role="tablist" aria-label="Recent activity">
+            @for (tab of activityTabs; track tab.id) {
+              <button
+                type="button"
+                role="tab"
+                [id]="'activity-tab-' + tab.id"
+                [attr.aria-selected]="activity() === tab.id"
+                [attr.aria-controls]="'activity-panel-' + tab.id"
+                (click)="selectActivity(tab.id)"
+              >
+                {{ tab.label }}
+              </button>
+            }
+          </div>
+          <div class="panel" role="tabpanel" [id]="'activity-panel-' + activity()" [attr.aria-labelledby]="'activity-tab-' + activity()">
+            @switch (activity()) {
+              @case ('sales') {
+                @if (board.widgets.recentSales.length === 0) {
+                  <app-empty-state [title]="salesEmpty().title" [message]="salesEmpty().message" />
+                } @else {
+                  <div class="table-scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Invoice</th>
+                          <th>Date</th>
+                          <th>Customer</th>
+                          <th class="end">Total</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of board.widgets.recentSales; track row.id) {
+                          <tr>
+                            <td>
+                              @if (access().sales) {
+                                <a [routerLink]="['/sales', row.id]">{{ row.number }}</a>
+                              } @else {
+                                {{ row.number }}
+                              }
+                            </td>
+                            <td>{{ date(row.date) }}</td>
+                            <td>{{ row.party }}</td>
+                            <td class="end">{{ money(row.amount) }}</td>
+                            <td><app-status-badge [status]="row.status" /></td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              }
+              @case ('purchases') {
+                @if (board.widgets.recentPurchases.length === 0) {
+                  <app-empty-state [title]="purchasesEmpty().title" [message]="purchasesEmpty().message" />
+                } @else {
+                  <div class="table-scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Document</th>
+                          <th>Date</th>
+                          <th>Supplier</th>
+                          <th class="end">Total</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of board.widgets.recentPurchases; track row.id) {
+                          <tr>
+                            <td>
+                              @if (access().purchases) {
+                                <a [routerLink]="['/purchases', row.id]">{{ row.number }}</a>
+                              } @else {
+                                {{ row.number }}
+                              }
+                            </td>
+                            <td>{{ date(row.date) }}</td>
+                            <td>{{ row.party }}</td>
+                            <td class="end">{{ money(row.amount) }}</td>
+                            <td><app-status-badge [status]="row.status" /></td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              }
+              @case ('payments') {
+                @if (board.widgets.recentPayments.length === 0) {
+                  <app-empty-state [title]="paymentsEmpty().title" [message]="paymentsEmpty().message" />
+                } @else {
+                  <div class="table-scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Number</th>
+                          <th>Date</th>
+                          <th>Party</th>
+                          <th>Method</th>
+                          <th class="end">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of board.widgets.recentPayments; track row.id) {
+                          <tr>
+                            <td>
+                              @if (canOpenPayment()) {
+                                <a [routerLink]="paymentLink(row.direction, row.id)">{{ row.number }}</a>
+                              } @else {
+                                {{ row.number }}
+                              }
+                            </td>
+                            <td>{{ date(row.date) }}</td>
+                            <td>{{ row.party }}</td>
+                            <td><app-status-badge [status]="row.method" /></td>
+                            <td class="end">{{ money(row.amount) }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              }
+              @case ('stock') {
+                @if (board.widgets.recentMovements.length === 0) {
+                  <app-empty-state [title]="stockEmpty().title" [message]="stockEmpty().message" />
+                } @else {
+                  <div class="table-scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Product</th>
+                          <th>Type</th>
+                          <th class="end">Qty</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of board.widgets.recentMovements; track row.id) {
+                          <tr>
+                            <td>{{ date(row.date) }}</td>
+                            <td>
+                              {{ row.product }}
+                              @if (row.reference) {
+                                <small class="ref">{{ row.reference }}</small>
+                              }
+                            </td>
+                            <td><app-status-badge [status]="row.type" /></td>
+                            <td class="end">{{ movement(row.quantityIn, row.quantityOut) }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              }
+            }
+          </div>
+        </div>
+      </section>
+    </div>
+  }
+}

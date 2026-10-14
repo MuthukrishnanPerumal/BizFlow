@@ -1,0 +1,33 @@
+@use 'theme/tokens';
+@use 'theme/material';
+@use 'theme/components';
+
+@media print {
+  app-sidebar,
+  app-header,
+  app-footer,
+  .bf-sidenav,
+  .bf-skip,
+  app-loading-indicator,
+  app-finance-nav,
+  .bf-page-header-actions,
+  .no-print {
+    display: none !important;
+  }
+
+  .bf-shell,
+  .bf-container,
+  .bf-content-wrap,
+  .bf-main,
+  .mat-drawer-content,
+  .mat-sidenav-content {
+    display: block !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+    transform: none !important;
+  }
+}

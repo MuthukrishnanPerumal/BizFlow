@@ -1,0 +1,131 @@
+<app-page-header title="Payment" subtitle="Settlement, invoice allocation, and the ledger entry behind this receipt.">
+  <a mat-button routerLink="..">Back</a>
+  <a mat-stroked-button class="no-print" [routerLink]="['print']">Print</a>
+  @if (payment()?.editable) {
+    <a *appHasPermission="'PAYMENT_UPDATE'" mat-stroked-button [routerLink]="['edit']">Edit</a>
+    <button *appHasPermission="'PAYMENT_CANCEL'" mat-stroked-button color="warn" type="button" (click)="cancel()">Cancel</button>
+  }
+</app-page-header>
+
+<app-finance-nav />
+
+@if (errorMessage() && payment()) {
+  <p class="banner" role="alert">{{ errorMessage() }}</p>
+}
+
+@if (loading()) {
+  <app-skeleton-loader [rows]="6" />
+} @else if (failed()) {
+    <app-error-state title="Could not load payment" [message]="errorMessage()" (retry)="load(paymentId())" />
+} @else if (payment(); as row) {
+  <section class="fin-kpis">
+    <article class="fin-kpi">
+      <span>{{ row.paymentNumber }}</span>
+      <strong>{{ money(row.amount) }}</strong>
+      <small>{{ date(row.paymentDate) }} · {{ row.paymentMethod.replaceAll('_', ' ') }}</small>
+    </article>
+    <article class="fin-kpi">
+      <span>{{ party() === 'customer' ? 'Customer' : 'Supplier' }}</span>
+      <strong>{{ row.partyName }}</strong>
+      <small>{{ row.partyCode }}</small>
+    </article>
+    <article class="fin-kpi" [class]="balanceClass(row.partyOutstanding) === 'due' ? 'is-danger' : 'is-ok'">
+      <span>Outstanding</span>
+      <strong [class]="balanceClass(row.partyOutstanding)">{{ money(row.partyOutstanding) }}</strong>
+      <small>After this settlement</small>
+    </article>
+    <article class="fin-kpi is-warning">
+      <span>Unapplied</span>
+      <strong>{{ money(row.unallocatedAmount) }}</strong>
+      <small><app-status-badge [status]="row.status" /></small>
+    </article>
+  </section>
+
+  <div class="fin-grid">
+    <article class="fin-panel">
+      <h2>Allocation</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Invoice</th>
+            <th class="end">Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (allocation of row.allocations; track allocation.invoiceId + allocation.status) {
+            <tr>
+              <td>{{ allocation.documentNumber }}</td>
+              <td class="end">{{ money(allocation.amount) }}</td>
+              <td><app-status-badge [status]="allocation.status" /></td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="3">This amount is an advance. It reduces the party balance and can be applied to invoices later.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (row.notes || row.referenceNumber) {
+        <p>{{ row.referenceNumber }}</p>
+        <p>{{ row.notes }}</p>
+      }
+    </article>
+    <article class="fin-panel">
+      <h2>Ledger</h2>
+      @if (row.journalStatus) {
+        <app-status-badge [status]="row.journalStatus" />
+      }
+      <table>
+        <thead>
+          <tr>
+            <th>Account</th>
+            <th class="end">Debit</th>
+            <th class="end">Credit</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of row.journal; track line.lineNumber) {
+            <tr>
+              <td>{{ line.accountCode }} {{ line.accountName }}</td>
+              <td class="end">{{ money(line.debit) }}</td>
+              <td class="end">{{ money(line.credit) }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="3">No general-ledger lines are stored for this document settlement.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </article>
+  </div>
+
+  <article class="fin-panel">
+    <h2>History</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>When</th>
+          <th>Event</th>
+          <th>Actor</th>
+          <th>Detail</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (audit of row.audits; track audit.createdAt + audit.eventType) {
+          <tr>
+            <td>{{ when(audit.createdAt) }}</td>
+            <td><app-status-badge [status]="audit.eventType" /></td>
+            <td>{{ audit.actor }}</td>
+            <td>{{ audit.detail }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="4">No audit events for this payment.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </article>
+}

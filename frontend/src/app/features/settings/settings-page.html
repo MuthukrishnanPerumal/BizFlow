@@ -1,0 +1,137 @@
+<app-page-header title="Settings" subtitle="Company profile and the business rules used across documents.">
+  <span class="save-state" [class.saved]="status() === 'Saved'">{{ status() }}</span>
+  @if (canUpdate()) {
+    <button mat-flat-button color="primary" type="button" [disabled]="saving() || !form()" (click)="save()">Save</button>
+  }
+</app-page-header>
+
+@if (errorMessage()) {
+  <p class="field-error" role="alert">{{ errorMessage() }}</p>
+}
+
+@if (loading()) {
+  <app-skeleton-loader [rows]="8" />
+} @else if (form(); as settings) {
+  <form class="stack" (submit)="$event.preventDefault(); save()">
+    <app-form-section title="Company" description="Printed on invoices, receipts, and reports.">
+      <div class="grid">
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Company name</mat-label>
+          <input matInput [value]="settings.companyName" [disabled]="!canUpdate()" (input)="patch({ companyName: $any($event.target).value })" />
+          @if (fieldErrors()['companyName']) { <mat-hint class="field-error">{{ fieldErrors()['companyName'] }}</mat-hint> }
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Address</mat-label>
+          <textarea matInput rows="3" [value]="settings.companyAddress" [disabled]="!canUpdate()" (input)="patch({ companyAddress: $any($event.target).value })"></textarea>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Phone</mat-label>
+          <input matInput [value]="settings.phone" [disabled]="!canUpdate()" (input)="patch({ phone: $any($event.target).value })" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Email</mat-label>
+          <input matInput type="email" [value]="settings.email" [disabled]="!canUpdate()" (input)="patch({ email: $any($event.target).value })" />
+          @if (fieldErrors()['email']) { <mat-hint class="field-error">{{ fieldErrors()['email'] }}</mat-hint> }
+        </mat-form-field>
+      </div>
+    </app-form-section>
+
+    <app-form-section title="Tax" description="Shown on customer and supplier documents.">
+      <div class="grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Tax name</mat-label>
+          <input matInput [value]="settings.taxName" [disabled]="!canUpdate()" (input)="patch({ taxName: $any($event.target).value })" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Tax number</mat-label>
+          <input matInput [value]="settings.taxNumber" [disabled]="!canUpdate()" (input)="patch({ taxNumber: $any($event.target).value })" />
+        </mat-form-field>
+      </div>
+    </app-form-section>
+
+    <app-form-section title="Document numbering" description="Prefixes apply to documents created after you save.">
+      <div class="grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Invoice prefix</mat-label>
+          <input matInput [value]="settings.invoicePrefix" [disabled]="!canUpdate()" (input)="patch({ invoicePrefix: $any($event.target).value })" />
+          @if (fieldErrors()['invoicePrefix']) { <mat-hint class="field-error">{{ fieldErrors()['invoicePrefix'] }}</mat-hint> }
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Purchase prefix</mat-label>
+          <input matInput [value]="settings.purchasePrefix" [disabled]="!canUpdate()" (input)="patch({ purchasePrefix: $any($event.target).value })" />
+          @if (fieldErrors()['purchasePrefix']) { <mat-hint class="field-error">{{ fieldErrors()['purchasePrefix'] }}</mat-hint> }
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Return prefix</mat-label>
+          <input matInput [value]="settings.returnPrefix" [disabled]="!canUpdate()" (input)="patch({ returnPrefix: $any($event.target).value })" />
+          @if (fieldErrors()['returnPrefix']) { <mat-hint class="field-error">{{ fieldErrors()['returnPrefix'] }}</mat-hint> }
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Purchase return prefix</mat-label>
+          <input matInput [value]="settings.purchaseReturnPrefix" [disabled]="!canUpdate()" (input)="patch({ purchaseReturnPrefix: $any($event.target).value })" />
+          @if (fieldErrors()['purchaseReturnPrefix']) { <mat-hint class="field-error">{{ fieldErrors()['purchaseReturnPrefix'] }}</mat-hint> }
+        </mat-form-field>
+      </div>
+    </app-form-section>
+
+    <app-form-section title="Money and stock" description="Ledger amounts stay at four decimal places. These rules control display and new document numbers.">
+      <div class="grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Currency</mat-label>
+          <mat-select [value]="settings.currencyCode" [disabled]="!canUpdate()" (selectionChange)="patch({ currencyCode: $event.value })">
+            @for (code of currencies; track code) {
+              <mat-option [value]="code">{{ code }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Rounding</mat-label>
+          <mat-select [value]="settings.roundingRule" [disabled]="!canUpdate()" (selectionChange)="patch({ roundingRule: $event.value })">
+            @for (rule of roundingRules; track rule.id) {
+              <mat-option [value]="rule.id">{{ rule.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Decimal precision</mat-label>
+          <input matInput type="number" min="0" max="4" [value]="settings.decimalPrecision" [disabled]="!canUpdate()" (input)="setPrecision($any($event.target).value)" />
+          @if (fieldErrors()['decimalPrecision']) { <mat-hint class="field-error">{{ fieldErrors()['decimalPrecision'] }}</mat-hint> }
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Default payment method</mat-label>
+          <mat-select [value]="settings.defaultPaymentMethod" [disabled]="!canUpdate()" (selectionChange)="patch({ defaultPaymentMethod: $event.value })">
+            @for (method of paymentMethods; track method) {
+              <mat-option [value]="method">{{ method.replaceAll('_', ' ') }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-checkbox [checked]="settings.allowNegativeStock" [disabled]="!canUpdate()" (change)="patch({ allowNegativeStock: $event.checked })">
+          Allow negative stock on issues
+        </mat-checkbox>
+      </div>
+    </app-form-section>
+
+    <app-form-section title="Display" description="Used on screen and on printed documents.">
+      <div class="grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Date format</mat-label>
+          <mat-select [value]="settings.dateFormat" [disabled]="!canUpdate()" (selectionChange)="patch({ dateFormat: $event.value })">
+            @for (format of dateFormats; track format.id) {
+              <mat-option [value]="format.id">{{ format.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </app-form-section>
+
+    @if (canUpdate()) {
+      <app-form-section
+        title="Reset data"
+        description="Open every business table, choose the ones to clear, and permanently delete those rows."
+      >
+        <p class="hint">Users, roles, permissions, and the company settings on this page stay in place.</p>
+        <button mat-stroked-button color="warn" type="button" (click)="openReset()">Reset data</button>
+      </app-form-section>
+    }
+  </form>
+}

@@ -1,0 +1,23 @@
+.save-state {
+  align-self: center;
+  color: var(--bf-text-secondary);
+  font-size: 13px;
+}
+
+.save-state.saved {
+  color: var(--bf-success, #0f7b4c);
+}
+
+.field-error {
+  color: var(--bf-danger);
+}
+
+@media (max-width: 720px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .span-2 {
+    grid-column: auto;
+  }
+}

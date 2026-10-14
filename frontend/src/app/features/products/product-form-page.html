@@ -1,0 +1,342 @@
+@if (loading()) {
+  <app-skeleton-loader [rows]="8" />
+} @else if (editing && record(); as product) {
+  <app-page-header [title]="product.name" [subtitle]="product.productCode">
+    <a mat-button routerLink="/products">Back to products</a>
+    @if (tab() !== 'edit') {
+      <button type="button" mat-flat-button color="primary" (click)="openTab('edit')">Edit</button>
+    }
+  </app-page-header>
+
+  <div class="master-tabs" role="tablist" aria-label="Product">
+    <button type="button" role="tab" [attr.aria-selected]="tab() === 'overview'" (click)="openTab('overview')">Overview</button>
+    @if (canViewStock) {
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'inventory'" (click)="openTab('inventory')">Inventory</button>
+    }
+    <button type="button" role="tab" [attr.aria-selected]="tab() === 'edit'" (click)="openTab('edit')">Edit</button>
+  </div>
+
+  @if (tab() === 'overview') {
+    <div class="summary">
+      <article>
+        <span>Status</span>
+        <strong><app-status-badge [status]="product.status" /></strong>
+      </article>
+      <article>
+        <span>Selling price</span>
+        <strong>{{ money(product.sellingPrice) }}</strong>
+      </article>
+      <article>
+        <span>Purchase price</span>
+        <strong>{{ money(product.purchasePrice) }}</strong>
+      </article>
+      <article>
+        <span>Reorder level</span>
+        <strong>{{ qty(product.reorderLevel) }} {{ product.unit.shortName }}</strong>
+      </article>
+    </div>
+    <div class="stack">
+      <app-form-section title="Basic information">
+        <dl class="facts">
+          <div><dt>Code</dt><dd>{{ product.productCode }}</dd></div>
+          <div><dt>Short name</dt><dd>{{ product.shortName || '—' }}</dd></div>
+          <div class="span-2"><dt>Description</dt><dd>{{ product.description || '—' }}</dd></div>
+        </dl>
+      </app-form-section>
+      <app-form-section title="Classification">
+        <dl class="facts">
+          <div><dt>Category</dt><dd>{{ product.category.name }}</dd></div>
+          <div><dt>Brand</dt><dd>{{ product.brand.name }}</dd></div>
+          <div><dt>Unit</dt><dd>{{ product.unit.name }} ({{ product.unit.shortName }})</dd></div>
+          <div><dt>Tax</dt><dd>{{ product.taxPercent }}%</dd></div>
+        </dl>
+      </app-form-section>
+      <app-form-section title="Pricing">
+        <dl class="facts">
+          <div><dt>Purchase price</dt><dd>{{ money(product.purchasePrice) }}</dd></div>
+          <div><dt>Selling price</dt><dd>{{ money(product.sellingPrice) }}</dd></div>
+          <div><dt>MRP</dt><dd>{{ money(product.mrp) }}</dd></div>
+          <div><dt>Minimum selling price</dt><dd>{{ money(product.minimumSellingPrice) }}</dd></div>
+        </dl>
+      </app-form-section>
+      <app-form-section title="Inventory">
+        <dl class="facts">
+          <div><dt>Stock type</dt><dd>{{ stockLabel(product.stockType) }}</dd></div>
+          <div><dt>Maximum stock</dt><dd>{{ product.maximumStockLevel == null ? '—' : qty(product.maximumStockLevel) }}</dd></div>
+        </dl>
+        @if (canViewStock) {
+          <button type="button" mat-button (click)="openTab('inventory')">View stock on hand</button>
+        }
+      </app-form-section>
+    </div>
+  } @else if (tab() === 'inventory') {
+    @if (stockLoading()) {
+      <app-skeleton-loader [rows]="5" />
+    } @else if (stockFailed()) {
+      <app-error-state title="Stock is unavailable" message="The inventory record for this product could not be loaded." (retry)="loadStock()" />
+    } @else if (stock(); as position) {
+      <div class="summary">
+        <article>
+          <span>On hand</span>
+          <strong>{{ qty(position.position.currentStock) }}</strong>
+        </article>
+        <article>
+          <span>Available</span>
+          <strong>{{ qty(position.position.availableStock) }}</strong>
+        </article>
+        <article>
+          <span>Stock value</span>
+          <strong>{{ money(position.position.stockValue) }}</strong>
+        </article>
+        <article>
+          <span>Health</span>
+          <strong><app-status-badge [status]="position.position.status" /></strong>
+        </article>
+      </div>
+      <app-form-section title="Recent movements">
+        @if (position.movements.length === 0) {
+          <app-empty-state title="No stock movements yet" message="Sales, purchases, and adjustments for this product will appear here." />
+        } @else {
+          <div class="bf-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Reference</th>
+                  <th class="end">In</th>
+                  <th class="end">Out</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of position.movements; track row.id) {
+                  <tr>
+                    <td data-label="Date">{{ row.date }}</td>
+                    <td data-label="Type"><app-status-badge [status]="row.transactionType" /></td>
+                    <td data-label="Reference">{{ row.referenceNumber || '—' }}</td>
+                    <td class="end" data-label="In">{{ qty(row.quantityIn) }}</td>
+                    <td class="end" data-label="Out">{{ qty(row.quantityOut) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </app-form-section>
+    }
+  } @else {
+    <ng-container *ngTemplateOutlet="productForm" />
+  }
+} @else {
+  <app-page-header title="New product" subtitle="Prices, stock rules, and the category, brand, and unit this product belongs to.">
+    <a mat-button routerLink="/products">Back to products</a>
+  </app-page-header>
+  <ng-container *ngTemplateOutlet="productForm" />
+}
+
+<ng-template #productForm>
+  <form class="stack" [formGroup]="form" (ngSubmit)="submit()">
+    <p class="hint">Fields marked with * are required. Prices default to zero and status defaults to active.</p>
+
+    <app-form-section title="Basic information" description="Product code is unique.">
+      <div class="grid">
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Product code</mat-label>
+            <input matInput formControlName="productCode" autocomplete="off" />
+          </mat-form-field>
+          @if (invalid('productCode')) {
+            <p class="field-error">{{ message('productCode', 'Use 2 to 64 letters, numbers, dots, underscores, or hyphens.') }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Name</mat-label>
+            <input matInput formControlName="name" />
+          </mat-form-field>
+          @if (invalid('name')) {
+            <p class="field-error">Enter a product name.</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Short name</mat-label>
+            <input matInput formControlName="shortName" />
+          </mat-form-field>
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Status</mat-label>
+            <mat-select formControlName="status">
+              <mat-option value="ACTIVE">Active</mat-option>
+              <mat-option value="INACTIVE">Inactive</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <div class="span-2">
+          <mat-form-field appearance="outline">
+            <mat-label>Description</mat-label>
+            <textarea matInput rows="3" formControlName="description"></textarea>
+          </mat-form-field>
+        </div>
+      </div>
+    </app-form-section>
+
+    <app-form-section title="Classification" description="Only active categories, brands, and units can be selected for a new link.">
+      <div class="grid">
+        <div>
+          <app-record-lookup label="Category" resource="categories" [selected]="category()" (selectedChange)="chooseCategory($event)" />
+          @if (invalid('categoryId')) {
+            <p class="field-error">{{ message('categoryId', 'Select a category.') }}</p>
+          }
+        </div>
+        <div>
+          <app-record-lookup label="Brand" resource="brands" [selected]="brand()" (selectedChange)="chooseBrand($event)" />
+          @if (invalid('brandId')) {
+            <p class="field-error">{{ message('brandId', 'Select a brand.') }}</p>
+          }
+        </div>
+        <div>
+          <app-record-lookup label="Unit" resource="units" [selected]="unit()" (selectedChange)="chooseUnit($event)" />
+          @if (invalid('unitId')) {
+            <p class="field-error">{{ message('unitId', 'Select a unit.') }}</p>
+          } @else if (unit()) {
+            <p class="hint">{{ decimalHint() }}</p>
+          }
+        </div>
+      </div>
+    </app-form-section>
+
+    <app-form-section title="Pricing" description="Selling price sits between the minimum selling price and MRP. Purchase price cannot exceed MRP.">
+      <div class="grid">
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Purchase price</mat-label>
+            <input matInput formControlName="purchasePrice" inputmode="decimal" />
+          </mat-form-field>
+          @if (invalid('purchasePrice')) {
+            <p class="field-error">{{ message('purchasePrice', 'Enter a purchase price.') }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Selling price</mat-label>
+            <input matInput formControlName="sellingPrice" inputmode="decimal" />
+          </mat-form-field>
+          @if (invalid('sellingPrice')) {
+            <p class="field-error">{{ message('sellingPrice', 'Enter a selling price.') }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>MRP</mat-label>
+            <input matInput formControlName="mrp" inputmode="decimal" />
+          </mat-form-field>
+          @if (invalid('mrp')) {
+            <p class="field-error">{{ message('mrp', 'Enter an MRP.') }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Minimum selling price</mat-label>
+            <input matInput formControlName="minimumSellingPrice" inputmode="decimal" />
+          </mat-form-field>
+          @if (invalid('minimumSellingPrice')) {
+            <p class="field-error">{{ message('minimumSellingPrice', 'Enter a minimum selling price.') }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Tax %</mat-label>
+            <input matInput formControlName="taxPercent" inputmode="decimal" />
+          </mat-form-field>
+          @if (invalid('taxPercent')) {
+            <p class="field-error">{{ message('taxPercent', 'Tax must be between 0 and 100.') }}</p>
+          }
+        </div>
+      </div>
+    </app-form-section>
+
+    <app-form-section title="Inventory">
+      <div class="grid">
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Stock type</mat-label>
+            <mat-select formControlName="stockType">
+              <mat-option value="NONE">None</mat-option>
+              <mat-option value="BATCH">Batch</mat-option>
+              <mat-option value="SERIAL">Serial</mat-option>
+              <mat-option value="PICS">Piece</mat-option>
+            </mat-select>
+          </mat-form-field>
+          @if (invalid('stockType')) {
+            <p class="field-error">{{ message('stockType', 'Select a stock type.') }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Reorder level</mat-label>
+            <input matInput formControlName="reorderLevel" inputmode="decimal" />
+          </mat-form-field>
+          @if (invalid('reorderLevel')) {
+            <p class="field-error">{{ message('reorderLevel', 'Enter a reorder level.') }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Maximum stock</mat-label>
+            <input matInput formControlName="maximumStockLevel" inputmode="decimal" />
+          </mat-form-field>
+          @if (invalid('maximumStockLevel')) {
+            <p class="field-error">{{ message('maximumStockLevel', 'Maximum stock must be at least the reorder level.') }}</p>
+          }
+        </div>
+      </div>
+    </app-form-section>
+
+    <app-form-section title="Advanced settings" description="Optional tracking details. Leave these closed until you need them.">
+      <button type="button" class="disclosure" (click)="advancedOpen.set(!advancedOpen())" [attr.aria-expanded]="advancedOpen()">
+        {{ advancedOpen() ? 'Hide advanced settings' : 'Show advanced settings' }}
+      </button>
+      @if (advancedOpen()) {
+        <div class="grid">
+          <div>
+            <mat-form-field appearance="outline">
+              <mat-label>Barcode</mat-label>
+              <input matInput formControlName="barcode" autocomplete="off" />
+            </mat-form-field>
+            @if (invalid('barcode')) {
+              <p class="field-error">{{ message('barcode', 'Enter a valid barcode or leave it blank.') }}</p>
+            }
+          </div>
+        </div>
+        <div class="checks">
+          <mat-checkbox formControlName="batchTracking">Batch tracking</mat-checkbox>
+          <mat-checkbox formControlName="serialTracking">Serial tracking</mat-checkbox>
+          <mat-checkbox formControlName="expiryTracking">Expiry tracking</mat-checkbox>
+        </div>
+        <p class="hint">Images, variants, extra barcodes, alternate units, batches, and serials are reserved on the product and will be managed in later modules.</p>
+      }
+    </app-form-section>
+
+    <div class="actions">
+      @if (canSave) {
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()" [attr.aria-busy]="saving() ? true : null">
+          @if (saving()) {
+            <mat-progress-spinner diameter="18" mode="indeterminate" />
+          }
+          {{ saving() ? 'Saving…' : (editing ? 'Save changes' : 'Create product') }}
+        </button>
+      }
+      <button type="button" mat-button (click)="resetForm()">Reset</button>
+      @if (editing) {
+        <button type="button" mat-button (click)="openTab('overview')">Cancel</button>
+      } @else {
+        <a mat-button routerLink="/products">Cancel</a>
+      }
+      @if (editing && auth.hasPermission('PRODUCT_DELETE')) {
+        <button type="button" mat-button color="warn" (click)="remove()">Delete</button>
+      }
+    </div>
+  </form>
+</ng-template>

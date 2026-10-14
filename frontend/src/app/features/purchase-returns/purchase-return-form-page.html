@@ -1,0 +1,107 @@
+<app-page-header title="Purchase return" subtitle="Start from the original purchase and return only the quantity that is still on that bill.">
+  <a mat-button routerLink="/purchase-returns">Back</a>
+</app-page-header>
+
+@if (errorMessage()) {
+  <p class="banner" role="alert">{{ errorMessage() }}</p>
+}
+@if (loading()) {
+  <app-skeleton-loader [rows]="6" />
+} @else if (purchase(); as bill) {
+  <div class="workspace">
+    <div class="bill-main">
+      <section class="panel">
+        <h2>1. Original transaction</h2>
+        <div class="original">
+          <div><span>Purchase</span><strong>{{ bill.purchaseNumber }}</strong></div>
+          <div><span>Supplier invoice</span><strong>{{ bill.invoiceNumber }}</strong></div>
+          <div><span>Supplier</span><strong>{{ bill.supplier.supplierName }}</strong></div>
+          <div><span>Purchased</span><strong>{{ date(bill.purchaseDate) }}</strong></div>
+        </div>
+        @if (!bill.returnable) {
+          <p class="field-error">This purchase cannot accept a return.</p>
+        }
+      </section>
+
+      <section class="panel">
+        <h2>2. Eligible items</h2>
+        @if (rows().length === 0) {
+          <p class="hint">Every line on this purchase has already been returned.</p>
+        } @else {
+          <p class="hint">Purchased is the original quantity. Already returned is credited. Enter a return quantity up to what is still available.</p>
+          <div class="cart with-free">
+            <div class="cart-head">
+              <span>Product</span>
+              <span>Purchased</span>
+              <span>Returned</span>
+              <span>Available</span>
+              <span>Return qty</span>
+              <span>Return free</span>
+              <span></span>
+              <span></span>
+            </div>
+            @for (row of rows(); track row.item.id) {
+              <div class="cart-row">
+                <div>
+                  <strong>{{ row.item.productName }}</strong>
+                  <p class="meta">{{ row.item.productCode }}@if (row.item.batch) { · Batch {{ row.item.batch }} }</p>
+                  @if (row.item.serialTracking) {
+                    <mat-form-field appearance="outline">
+                      <mat-label>Serials being returned</mat-label>
+                      <input matInput [formControl]="row.serials" [placeholder]="row.item.serials.join(', ')" />
+                    </mat-form-field>
+                  }
+                  @if (rowError(row); as message) {
+                    <p class="field-error">{{ message }}</p>
+                  }
+                </div>
+                <div class="line-total">{{ row.item.quantity }}</div>
+                <div class="line-total">{{ row.item.returnedQuantity }}</div>
+                <div class="line-total">{{ row.item.remainingQuantity }}</div>
+                <mat-form-field appearance="outline">
+                  <mat-label>Return qty</mat-label>
+                  <input matInput [formControl]="row.quantity" inputmode="decimal" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Return free</mat-label>
+                  <input matInput [formControl]="row.freeQuantity" inputmode="decimal" />
+                </mat-form-field>
+                <span></span>
+                <span></span>
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      <section class="panel">
+        <h2>3. Reason and adjustment</h2>
+        <div class="grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Return date</mat-label>
+            <input matInput type="date" [formControl]="returnDate" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Reason</mat-label>
+            <input matInput [formControl]="notes" />
+          </mat-form-field>
+        </div>
+        <p class="hint">This reduces what you owe the supplier and removes the returned quantity from stock. It does not send a separate cash refund.</p>
+      </section>
+    </div>
+
+    <aside class="summary">
+      <h2>Return</h2>
+      <dl class="grand">
+        <dt>Lines to return</dt>
+        <dd>{{ selectedCount() }}</dd>
+      </dl>
+      <p class="hint">The server prices the return from the original purchase. Quantities cannot exceed what is still on that bill.</p>
+      <div class="actions">
+        <button class="complete bf-busy" mat-flat-button color="primary" type="button" [disabled]="!canSave()" [attr.aria-busy]="saving() ? true : null" (click)="save()">
+          {{ saving() ? 'Saving…' : 'Complete return' }}
+        </button>
+      </div>
+    </aside>
+  </div>
+}

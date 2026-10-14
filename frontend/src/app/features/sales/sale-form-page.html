@@ -1,0 +1,250 @@
+<app-page-header [title]="saleId() ? 'Edit sale' : 'New sale'" subtitle="Search a product, add it to the cart, take payment, then complete. The server calculates the invoice.">
+  <a mat-button routerLink="/sales">Back to sales</a>
+</app-page-header>
+
+@if (errorMessage()) {
+  <p class="banner" role="alert">{{ errorMessage() }}</p>
+}
+
+<div class="workspace">
+  <div class="bill-main">
+    <section class="panel" aria-label="Product search">
+      <h2>Product</h2>
+      <div class="scan">
+        <form (submit)="scan($event)">
+          <mat-form-field appearance="outline">
+            <mat-label>Barcode</mat-label>
+            <input #barcodeInput matInput [formControl]="barcode" placeholder="Scan or type a barcode" autocomplete="off" />
+            <mat-hint>Enter adds the item. A repeat scan increases quantity.</mat-hint>
+          </mat-form-field>
+        </form>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Search name, code, or barcode</mat-label>
+            <input matInput [formControl]="productSearch" placeholder="Start typing" autocomplete="off" (keydown.enter)="takeProduct($event)" />
+          </mat-form-field>
+          @if (productHits().length > 0) {
+            <div class="hits" role="listbox" aria-label="Products">
+              @for (product of productHits(); track product.id) {
+                <button type="button" class="hit" (click)="chooseProduct(product)">
+                  <strong>{{ product.name }}</strong>
+                  <span class="price">{{ money(product.sellingPrice) }}</span>
+                  <span class="meta">
+                    {{ product.productCode }}
+                    @if (product.barcode) { · {{ product.barcode }} }
+                    · {{ product.unit.shortName }}
+                    · Stock {{ hitStock()[product.id] || '…' }}
+                  </span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Cart">
+      <h2>Cart</h2>
+      @if (lines.length === 0) {
+        <p class="hint">Scan a barcode or search for a product to start the bill.</p>
+      } @else {
+        <div class="cart">
+          <div class="cart-head">
+            <span>Product</span>
+            <span>Qty</span>
+            <span>Price</span>
+            <span>Discount</span>
+            <span>Tax</span>
+            <span>Total</span>
+            <span></span>
+          </div>
+          @for (line of lines.controls; track $index; let i = $index) {
+            <div class="cart-row" [formGroup]="lineAt(i)">
+              <div>
+                <strong>{{ lineAt(i).get('label')?.value }}</strong>
+                <p class="meta">
+                  @if (lineMeta()[i]?.onHand) {
+                    Stock {{ lineMeta()[i].onHand }}
+                  }
+                  @if (lineMeta()[i]?.minimumPrice) {
+                    · Min {{ money(lineMeta()[i].minimumPrice) }}
+                  }
+                </p>
+                @if (stockWarning(i); as warning) {
+                  <p class="field-error">{{ warning }}</p>
+                }
+                @if (lineMeta()[i]?.batchTracking) {
+                  <mat-form-field appearance="outline">
+                    <mat-label>Batch</mat-label>
+                    <input matInput formControlName="batch" />
+                  </mat-form-field>
+                }
+                @if (lineMeta()[i]?.expiryTracking) {
+                  <mat-form-field appearance="outline">
+                    <mat-label>Expiry</mat-label>
+                    <input matInput type="date" formControlName="expiryDate" />
+                  </mat-form-field>
+                }
+                @if (lineMeta()[i]?.serialTracking) {
+                  <mat-form-field appearance="outline">
+                    <mat-label>Serial numbers</mat-label>
+                    <input matInput formControlName="serials" placeholder="One serial per quantity" />
+                  </mat-form-field>
+                }
+              </div>
+              <mat-form-field appearance="outline">
+                <mat-label>Qty</mat-label>
+                <input #quantityInput matInput formControlName="quantity" inputmode="decimal" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Price</mat-label>
+                <input matInput formControlName="sellingPrice" inputmode="decimal" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Discount</mat-label>
+                <input matInput formControlName="discount" inputmode="decimal" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Tax %</mat-label>
+                <input matInput formControlName="tax" inputmode="decimal" />
+              </mat-form-field>
+              <div class="line-total">{{ lineTotal(i) }}</div>
+              <button type="button" mat-icon-button aria-label="Remove item" (click)="removeLine(i)">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      }
+      <p class="keys">F2 barcode · F4 customer · Enter adds a product · F9 completes the sale</p>
+    </section>
+
+    <section class="panel" aria-label="Customer">
+      <h2>Customer</h2>
+      @if (selectedCustomer(); as customer) {
+        <div class="customer-chip">
+          <div>
+            <strong>{{ customer.customerName }}</strong>
+            <span class="hint">{{ customer.customerCode }} · Outstanding {{ money(customer.account?.balance) }}</span>
+          </div>
+          <button type="button" mat-button (click)="clearCustomer()">Change</button>
+        </div>
+      }
+      <div class="scan">
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Customer</mat-label>
+            <input id="sale-customer-search" matInput [formControl]="customerSearch" placeholder="Name, code, or phone" autocomplete="off" (keydown.enter)="takeCustomer($event)" />
+          </mat-form-field>
+          @if (customerHits().length > 0) {
+            <div class="hits">
+              @for (customer of customerHits(); track customer.id) {
+                <button type="button" (click)="chooseCustomer(customer)">
+                  <strong>{{ customer.customerName }}</strong>
+                  <span class="meta">{{ customer.customerCode }}@if (customer.phone) { · {{ customer.phone }} }</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>Invoice date</mat-label>
+          <input matInput type="date" [formControl]="invoiceDate" />
+        </mat-form-field>
+      </div>
+    </section>
+  </div>
+
+  <aside class="summary" aria-label="Total and payment">
+    <h2>Total</h2>
+    <dl class="grand">
+      <dt>Grand total</dt>
+      <dd>{{ money(preview().grandTotal) }}</dd>
+    </dl>
+    <dl class="totals">
+      <div><dt>Subtotal</dt><dd>{{ money(preview().subtotal) }}</dd></div>
+      <div><dt>Discount</dt><dd>{{ money(preview().totalDiscount) }}</dd></div>
+      <div><dt>Tax</dt><dd>{{ money(preview().tax) }}</dd></div>
+      <div><dt>Paid</dt><dd>{{ money(preview().paidAmount) }}</dd></div>
+      <div><dt>Balance</dt><dd>{{ money(preview().balanceAmount) }}</dd></div>
+    </dl>
+
+    <h2>Payment</h2>
+    <mat-form-field appearance="outline">
+      <mat-label>Method</mat-label>
+      <mat-select [value]="paymentType.value" (selectionChange)="onPaymentType($event.value)">
+        <mat-option value="CASH">Cash</mat-option>
+        <mat-option value="CARD">Card</mat-option>
+        <mat-option value="UPI">UPI</mat-option>
+        <mat-option value="BANK_TRANSFER">Bank transfer</mat-option>
+        <mat-option value="CREDIT">Credit</mat-option>
+        <mat-option value="MIXED">Mixed</mat-option>
+      </mat-select>
+    </mat-form-field>
+    @if (paymentType.value !== 'CREDIT') {
+      <mat-form-field appearance="outline">
+        <mat-label>Paid amount</mat-label>
+        <input matInput [formControl]="paidAmount" inputmode="decimal" />
+      </mat-form-field>
+      <button type="button" mat-button (click)="collectFull()">Collect full amount</button>
+    }
+    @if (paymentType.value === 'MIXED') {
+      @for (tender of tenders.controls; track $index; let i = $index) {
+        <div class="grid" [formGroup]="tenderAt(i)">
+          <mat-form-field appearance="outline">
+            <mat-label>Method</mat-label>
+            <mat-select formControlName="method">
+              <mat-option value="CASH">Cash</mat-option>
+              <mat-option value="CARD">Card</mat-option>
+              <mat-option value="UPI">UPI</mat-option>
+              <mat-option value="BANK_TRANSFER">Bank transfer</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Amount</mat-label>
+            <input matInput formControlName="amount" inputmode="decimal" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Reference</mat-label>
+            <input matInput formControlName="referenceNumber" />
+          </mat-form-field>
+          <button type="button" mat-button (click)="removeTender(i)">Remove payment</button>
+        </div>
+      }
+      <button type="button" mat-stroked-button (click)="addTender()">Add payment</button>
+    }
+
+    <details class="adjustments">
+      <summary>Adjustments and notes</summary>
+      <div class="grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Order discount</mat-label>
+          <input matInput [formControl]="orderDiscount" inputmode="decimal" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Charges</mat-label>
+          <input matInput [formControl]="additionalCharges" inputmode="decimal" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Round off</mat-label>
+          <input matInput [formControl]="roundOff" inputmode="decimal" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Reference</mat-label>
+          <input matInput [formControl]="referenceNumber" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Notes</mat-label>
+          <textarea matInput rows="2" [formControl]="notes"></textarea>
+        </mat-form-field>
+      </div>
+    </details>
+
+    <div class="actions">
+      <button type="button" mat-stroked-button [disabled]="saving()" [attr.aria-busy]="saving() ? true : null" (click)="save(false)">Save draft</button>
+      <button type="button" class="complete bf-busy" mat-flat-button color="primary" [disabled]="saving()" [attr.aria-busy]="saving() ? true : null" (click)="save(true)">
+        {{ saving() ? 'Saving…' : 'Complete sale' }}
+      </button>
+    </div>
+  </aside>
+</div>

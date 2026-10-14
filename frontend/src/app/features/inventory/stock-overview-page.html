@@ -1,0 +1,115 @@
+<app-page-header title="Stock overview" subtitle="Stock health for the selected location, then the product list." />
+<app-inventory-nav />
+<app-filter-panel title="Filters">
+  <div class="filters">
+    <app-search-bar placeholder="Search product, code, barcode, or category" (queryChange)="onSearch($event)" />
+    <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+      <mat-label>Status</mat-label>
+      <mat-select [value]="status()" (selectionChange)="onStatus($event.value)">
+        <mat-option value="">All statuses</mat-option>
+        <mat-option value="IN_STOCK">In stock</mat-option>
+        <mat-option value="LOW_STOCK">Low stock</mat-option>
+        <mat-option value="OUT_OF_STOCK">Out of stock</mat-option>
+        <mat-option value="OVER_STOCK">Over stock</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+      <mat-label>Location</mat-label>
+      <mat-select [value]="locationId() ?? ''" (selectionChange)="onLocation($event.value)">
+        <mat-option value="">All locations</mat-option>
+        @for (location of locations(); track location.id) {
+          <mat-option [value]="location.id">{{ location.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+</app-filter-panel>
+
+@if (health(); as board) {
+  <section class="inv-kpis five" aria-label="Stock health">
+    <article class="inv-kpi">
+      <span>Total stock</span>
+      <strong>{{ qty(board.unitsOnHand) }}</strong>
+      <small>{{ qty(board.unitsAvailable) }} available</small>
+    </article>
+    <article class="inv-kpi is-warning">
+      <span>Low stock</span>
+      <strong>{{ board.lowStock }}</strong>
+      <small><a routerLink="/inventory/low-stock">Review</a></small>
+    </article>
+    <article class="inv-kpi is-danger">
+      <span>Out of stock</span>
+      <strong>{{ board.outOfStock }}</strong>
+      <small><a routerLink="/inventory/out-of-stock">Review</a></small>
+    </article>
+    <article class="inv-kpi">
+      <span>Stock value</span>
+      <strong>{{ money(board.inventoryValue) }}</strong>
+      <small>{{ label(board.valuationMethod) }} cost</small>
+    </article>
+    <article class="inv-kpi is-ok">
+      <span>Products</span>
+      <strong>{{ board.skuCount }}</strong>
+      <small>{{ board.inStock }} in stock</small>
+    </article>
+  </section>
+}
+
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader layout="table" [rows]="8" />
+  } @else if (failed()) {
+    <app-error-state title="Could not load stock" [message]="errorMessage()" (retry)="load()" />
+  } @else if (rows().length === 0) {
+    <app-empty-state
+      title="No stock records"
+      message="Nothing matches this search or location. Clear the filters, or receive stock on a purchase."
+    />
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th><button type="button" class="sort" (click)="toggleSort('productName')">Product <mat-icon>{{ sortMark('productName') }}</mat-icon></button></th>
+          <th><button type="button" class="sort" (click)="toggleSort('productCode')">Code <mat-icon>{{ sortMark('productCode') }}</mat-icon></button></th>
+          <th>Barcode</th>
+          <th>Category</th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('currentStock')">On hand <mat-icon>{{ sortMark('currentStock') }}</mat-icon></button></th>
+          <th class="end">Reserved</th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('availableStock')">Available <mat-icon>{{ sortMark('availableStock') }}</mat-icon></button></th>
+          <th class="end">Avg cost</th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('sellingPrice')">Price <mat-icon>{{ sortMark('sellingPrice') }}</mat-icon></button></th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('stockValue')">Value <mat-icon>{{ sortMark('stockValue') }}</mat-icon></button></th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('reorderLevel')">Reorder <mat-icon>{{ sortMark('reorderLevel') }}</mat-icon></button></th>
+          <th class="end">Maximum</th>
+          <th><button type="button" class="sort" (click)="toggleSort('status')">Status <mat-icon>{{ sortMark('status') }}</mat-icon></button></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.productId) {
+          <tr>
+            <td data-label="Product">
+              <a [routerLink]="['/inventory/products', row.productId]">{{ row.productName }}</a>
+              <button type="button" class="row-details" aria-expanded="false">
+                <span class="when-closed">Details</span>
+                <span class="when-open">Hide</span>
+              </button>
+            </td>
+            <td data-detail data-label="Code">{{ row.productCode }}</td>
+            <td data-detail data-label="Barcode">{{ row.barcode || '—' }}</td>
+            <td data-detail data-label="Category">{{ row.categoryName }}</td>
+            <td data-detail class="end" data-label="On hand">{{ qty(row.currentStock) }}</td>
+            <td data-detail class="end" data-label="Reserved">{{ qty(row.reservedStock) }}</td>
+            <td class="end" data-label="Available">{{ qty(row.availableStock) }}</td>
+            <td data-detail class="end" data-label="Avg cost">{{ money(row.averageCost) }}</td>
+            <td data-detail class="end" data-label="Price">{{ money(row.sellingPrice) }}</td>
+            <td data-detail class="end" data-label="Value">{{ money(row.stockValue) }}</td>
+            <td data-detail class="end" data-label="Reorder">{{ qty(row.reorderLevel) }}</td>
+            <td data-detail class="end" data-label="Maximum">{{ row.maximumStockLevel == null ? '—' : qty(row.maximumStockLevel) }}</td>
+            <td data-label="Status"><app-status-badge [status]="row.status" /></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />
+  }
+</div>

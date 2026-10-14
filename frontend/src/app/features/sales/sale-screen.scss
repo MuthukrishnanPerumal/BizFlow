@@ -1,0 +1,290 @@
+:host {
+  display: block;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: start;
+}
+
+.panel,
+.summary {
+  border: 1px solid var(--bf-border);
+  border-radius: var(--bf-radius);
+  background: var(--bf-surface);
+}
+
+.panel {
+  padding: 16px;
+}
+
+.summary {
+  position: sticky;
+  top: 12px;
+  padding: 16px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bf-accent) 8%, var(--bf-surface)), var(--bf-surface) 88px);
+}
+
+.summary h2,
+.panel h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.scan {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.scan mat-form-field {
+  width: 100%;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.lines {
+  margin-top: 8px;
+  overflow: auto;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.5fr) repeat(5, minmax(84px, 0.7fr)) 36px;
+  gap: 8px;
+  align-items: start;
+  padding: 8px 0;
+  border-top: 1px solid var(--bf-border);
+}
+
+.line-head {
+  color: var(--bf-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hits {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 8px;
+}
+
+.hits button {
+  text-align: left;
+  border: 0;
+  background: var(--bf-surface-muted);
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.hits button:hover,
+.hits button:focus-visible {
+  background: var(--bf-accent-soft);
+}
+
+.meta,
+.field-error,
+.hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+
+.meta,
+.hint {
+  color: var(--bf-text-secondary);
+}
+
+.field-error,
+.banner {
+  color: var(--bf-danger);
+}
+
+.banner {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bf-danger) 10%, transparent);
+}
+
+.customer-chip {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bf-surface-muted);
+}
+
+.customer-chip strong {
+  display: block;
+}
+
+.totals {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.totals div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.totals dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.grand {
+  padding-top: 8px;
+  border-top: 1px solid var(--bf-border);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.actions,
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.keys {
+  margin: 12px 0 0;
+  color: var(--bf-text-secondary);
+  font-size: 12px;
+}
+
+.sections {
+  display: grid;
+  gap: 16px;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.facts span {
+  display: block;
+  color: var(--bf-text-secondary);
+  font-size: 12px;
+}
+
+.facts strong {
+  display: block;
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.print-sheet {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  color: #15202b;
+  padding: 24px;
+}
+
+.print-sheet h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.print-sheet table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+
+.print-sheet th,
+.print-sheet td {
+  border-bottom: 1px solid #d5dde5;
+  padding: 6px 4px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.print-sheet th:nth-child(n + 3),
+.print-sheet td:nth-child(n + 3) {
+  text-align: right;
+}
+
+.print-head,
+.print-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.print-meta {
+  margin: 16px 0;
+}
+
+.company {
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: #5c6b7a;
+}
+
+.footer-note {
+  margin-top: 24px;
+  border-top: 1px solid #d5dde5;
+  padding-top: 8px;
+  font-size: 12px;
+  color: #5c6b7a;
+}
+
+@media (max-width: 1100px) {
+  .line,
+  .scan {
+    grid-template-columns: 1fr;
+  }
+
+  .line-head {
+    display: none;
+  }
+}
+
+@media (max-width: 960px) {
+  .workspace,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .span-2 {
+    grid-column: auto;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-sheet {
+    padding: 0;
+    max-width: none;
+  }
+}

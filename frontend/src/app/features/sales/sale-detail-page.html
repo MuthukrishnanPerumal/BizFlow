@@ -1,0 +1,205 @@
+@if (loading()) {
+  <app-skeleton-loader [rows]="8" />
+} @else if (failed()) {
+  <app-error-state title="Could not load sale" [message]="errorMessage()" (retry)="load()" />
+} @else if (sale(); as bill) {
+  <app-page-header [title]="bill.invoiceNumber" subtitle="Invoice, payment, stock, and returns.">
+    <a mat-button routerLink="/sales">Sales</a>
+    <a mat-stroked-button [routerLink]="['/sales', bill.id, 'print']">Print</a>
+    @if (bill.editable) {
+      <a *appHasPermission="'SALES_UPDATE'" mat-stroked-button [routerLink]="['/sales', bill.id, 'edit']">Edit</a>
+    }
+    @if (bill.status === 'DRAFT') {
+      <button *appHasPermission="'SALES_UPDATE'" type="button" mat-flat-button color="primary" (click)="complete()">Complete</button>
+    }
+    @if (bill.returnable) {
+      <a *appHasPermission="'SALES_CREATE'" mat-stroked-button [routerLink]="['/sales-returns', 'new']" [queryParams]="{ saleId: bill.id }">Return</a>
+    }
+    @if (bill.cancellable) {
+      <button *appHasPermission="'SALES_CANCEL'" type="button" mat-button color="warn" (click)="cancelSale()">Cancel</button>
+    }
+  </app-page-header>
+
+  <div class="sections">
+    <section class="panel">
+      <div class="facts">
+        <div><span>Status</span><strong><app-status-badge [status]="bill.status" /></strong></div>
+        <div><span>Date</span><strong>{{ date(bill.invoiceDate) }}</strong></div>
+        <div><span>Customer</span><strong>{{ bill.customer.customerName }}</strong><span>{{ bill.customer.customerCode }}</span></div>
+        <div><span>Outstanding</span><strong>{{ money(bill.customer.balance) }}</strong></div>
+        <div><span>Payment</span><strong>{{ label(bill.paymentType) }}</strong></div>
+        <div><span>Reference</span><strong>{{ bill.referenceNumber || '—' }}</strong></div>
+      </div>
+      @if (bill.notes) {
+        <p>{{ bill.notes }}</p>
+      }
+    </section>
+
+    <section class="panel">
+      <h2>Items</h2>
+      <div class="bf-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Batch / serial</th>
+              <th class="end">Qty</th>
+              <th class="end">Price</th>
+              <th class="end">Discount</th>
+              <th class="end">Tax</th>
+              <th class="end">Total</th>
+              <th class="end">Remaining</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of bill.items; track item.id) {
+              <tr>
+                <td>{{ item.productName }}<div class="hint">{{ item.productCode }}</div></td>
+                <td>{{ item.batch || '—' }}<div class="hint">{{ item.serials.join(', ') }}</div></td>
+                <td class="end">{{ item.quantity }}</td>
+                <td class="end">{{ money(item.sellingPrice) }}</td>
+                <td class="end">{{ money(item.discount) }}</td>
+                <td class="end">{{ money(item.taxAmount) }}</td>
+                <td class="end">{{ money(item.total) }}</td>
+                <td class="end">{{ item.remainingQuantity }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Totals</h2>
+      <dl class="totals">
+        <div><dt>Subtotal</dt><dd>{{ money(bill.subtotal) }}</dd></div>
+        <div><dt>Item discount</dt><dd>{{ money(bill.itemDiscount) }}</dd></div>
+        <div><dt>Order discount</dt><dd>{{ money(bill.orderDiscount) }}</dd></div>
+        <div><dt>Tax</dt><dd>{{ money(bill.tax) }}</dd></div>
+        <div><dt>Charges</dt><dd>{{ money(bill.additionalCharges) }}</dd></div>
+        <div><dt>Round off</dt><dd>{{ money(bill.roundOff) }}</dd></div>
+        <div class="grand"><dt>Grand total</dt><dd>{{ money(bill.grandTotal) }}</dd></div>
+        <div><dt>Paid</dt><dd>{{ money(bill.paidAmount) }}</dd></div>
+        <div><dt>Refunded</dt><dd>{{ money(bill.refundedAmount) }}</dd></div>
+        <div><dt>Balance</dt><dd>{{ money(bill.balanceAmount) }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="panel">
+      <h2>Payment</h2>
+      @if (bill.tenders.length === 0 && bill.payments.length === 0) {
+        <p class="hint">No amount was collected on this invoice.</p>
+      }
+      @if (bill.tenders.length > 0) {
+        <div class="bf-table-wrap">
+          <table>
+            <thead><tr><th>Method</th><th class="end">Amount</th><th>Reference</th></tr></thead>
+            <tbody>
+              @for (tender of bill.tenders; track tender.id) {
+                <tr>
+                  <td>{{ tender.method }}</td>
+                  <td class="end">{{ money(tender.amount) }}</td>
+                  <td>{{ tender.referenceNumber || '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+      @if (bill.payments.length > 0) {
+        <div class="bf-table-wrap">
+          <table>
+            <thead><tr><th>Receipt</th><th>Date</th><th>Method</th><th class="end">Amount</th><th>Status</th></tr></thead>
+            <tbody>
+              @for (payment of bill.payments; track payment.id) {
+                <tr>
+                  <td>{{ payment.paymentNumber }}</td>
+                  <td>{{ date(payment.paymentDate) }}</td>
+                  <td>{{ payment.paymentMethod }}</td>
+                  <td class="end">{{ money(payment.amount) }}</td>
+                  <td>{{ payment.status }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <section class="panel">
+      <h2>Stock impact</h2>
+      @if (bill.stockImpact.length === 0) {
+        <p class="hint">This invoice has not moved stock.</p>
+      } @else {
+        <div class="bf-table-wrap">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Product</th><th>Type</th><th class="end">In</th><th class="end">Out</th><th class="end">Balance</th></tr>
+            </thead>
+            <tbody>
+              @for (row of bill.stockImpact; track row.id) {
+                <tr>
+                  <td>{{ date(row.date) }}</td>
+                  <td>{{ row.productName }}</td>
+                  <td>{{ row.transactionType }}</td>
+                  <td class="end">{{ row.quantityIn }}</td>
+                  <td class="end">{{ row.quantityOut }}</td>
+                  <td class="end">{{ row.runningBalance }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <section class="panel">
+      <h2>Return history</h2>
+      @if (bill.returns.length === 0) {
+        <p class="hint">No goods have been returned against this invoice.</p>
+      } @else {
+        <div class="bf-table-wrap">
+          <table>
+            <thead><tr><th>Return</th><th>Date</th><th>Reason</th><th>Refund</th><th class="end">Discount</th><th class="end">Tax</th><th class="end">Total</th></tr></thead>
+            <tbody>
+              @for (row of bill.returns; track row.id) {
+                <tr>
+                  <td><a [routerLink]="['/sales-returns', row.id]">{{ row.returnNumber }}</a></td>
+                  <td>{{ date(row.returnDate) }}</td>
+                  <td>{{ row.reason }}</td>
+                  <td>{{ row.refundMethod }}</td>
+                  <td class="end">{{ money(row.discountReversal) }}</td>
+                  <td class="end">{{ money(row.taxReversal) }}</td>
+                  <td class="end">{{ money(row.grandTotal) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <section class="panel">
+      <h2>Audit history</h2>
+      @if (bill.audits.length === 0) {
+        <p class="hint">No audit events are recorded for this invoice.</p>
+      } @else {
+        <div class="bf-table-wrap">
+          <table>
+            <thead><tr><th>When</th><th>Event</th><th>Actor</th><th>Detail</th></tr></thead>
+            <tbody>
+              @for (row of bill.audits; track row.id) {
+                <tr>
+                  <td>{{ when(row.createdAt) }}</td>
+                  <td>{{ row.eventType }}</td>
+                  <td>{{ row.actor }}</td>
+                  <td>{{ row.detail || row.action }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </div>
+}

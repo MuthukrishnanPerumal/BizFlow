@@ -1,0 +1,51 @@
+@if (failed()) {
+  <app-error-state title="Could not load the stock report" [message]="errorMessage()" actionLabel="Back" />
+} @else {
+  <div class="no-print toolbar">
+    <a mat-button routerLink="/reports/inventory">Back</a>
+    <button mat-flat-button color="primary" type="button" (click)="print()">Print</button>
+  </div>
+  <article class="print-sheet">
+    <header class="print-head">
+      <div>
+        <app-letterhead />
+        <h1>Stock report</h1>
+        <p>{{ period() }}</p>
+      </div>
+      <div>
+        <p>{{ total() }} products</p>
+      </div>
+    </header>
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Opening</th>
+          <th>Purchase</th>
+          <th>Purchase return</th>
+          <th>Sales</th>
+          <th>Sales return</th>
+          <th>Adjustment</th>
+          <th>Closing</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.id) {
+          <tr>
+            <td>{{ row.product }}</td>
+            <td>{{ qty(row.openingStock) }}</td>
+            <td>{{ qty(row.purchase) }}</td>
+            <td>{{ qty(row.purchaseReturn) }}</td>
+            <td>{{ qty(row.sales) }}</td>
+            <td>{{ qty(row.salesReturn) }}</td>
+            <td>{{ qty(row.adjustment) }}</td>
+            <td>{{ qty(row.closingStock) }}</td>
+            <td>{{ money(row.stockValue) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <p class="footer-note">All products matching the current report filters. Navigation and action buttons are omitted.</p>
+  </article>
+}

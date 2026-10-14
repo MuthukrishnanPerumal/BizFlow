@@ -1,0 +1,69 @@
+<app-page-header title="Stock transfers" subtitle="Stock leaving one place and arriving at another. Status shows whether it is still a draft or already moved.">
+  <a mat-flat-button color="primary" routerLink="new">New transfer</a>
+</app-page-header>
+<app-inventory-nav />
+<app-search-bar placeholder="Search number, location, or reason" (queryChange)="onSearch($event)" />
+<app-filter-panel title="Filters">
+  <div class="filters">
+    <app-iso-date-field label="From" [formControl]="dateFrom" (committed)="applyFilters()" />
+    <app-iso-date-field label="To" [formControl]="dateTo" (committed)="applyFilters()" />
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Status</mat-label>
+      <mat-select [value]="status()" (selectionChange)="onStatus($event.value)">
+        <mat-option value="">All statuses</mat-option>
+        <mat-option value="DRAFT">Draft</mat-option>
+        <mat-option value="CONFIRMED">Confirmed</mat-option>
+        <mat-option value="COMPLETED">Completed</mat-option>
+        <mat-option value="CANCELLED">Cancelled</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+</app-filter-panel>
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader layout="table" [rows]="6" />
+  } @else if (failed()) {
+    <app-error-state title="Could not load transfers" [message]="errorMessage()" (retry)="load()" />
+  } @else if (rows().length === 0) {
+    <app-empty-state
+      title="No transfers"
+      message="Nothing matches this search or these filters. Create a transfer when stock needs to move between locations."
+    >
+      <a mat-flat-button color="primary" routerLink="new">New transfer</a>
+    </app-empty-state>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th><button type="button" class="sort" (click)="toggleSort('transferNumber')">Number <mat-icon>{{ sortMark('transferNumber') }}</mat-icon></button></th>
+          <th><button type="button" class="sort" (click)="toggleSort('transferDate')">Date <mat-icon>{{ sortMark('transferDate') }}</mat-icon></button></th>
+          <th>From</th>
+          <th>To</th>
+          <th>Reason</th>
+          <th><button type="button" class="sort" (click)="toggleSort('status')">Status <mat-icon>{{ sortMark('status') }}</mat-icon></button></th>
+          <th>User</th>
+          <th class="end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.id) {
+          <tr>
+            <td><a [routerLink]="[row.id]">{{ row.transferNumber }}</a></td>
+            <td>{{ date(row.transferDate) }}</td>
+            <td>{{ row.fromLocationName }}</td>
+            <td>{{ row.toLocationName }}</td>
+            <td>{{ row.reason }}</td>
+            <td><app-status-badge [status]="row.status" /></td>
+            <td data-label="User">{{ row.user }}</td>
+            <td class="end actions" data-label="Actions">
+              <div class="row-menu">
+                <a mat-button [routerLink]="[row.id]">Open</a>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />
+  }
+</div>

@@ -1,0 +1,69 @@
+<app-page-header title="Users" subtitle="Accounts that can sign in, and the roles that decide what they can do.">
+  <a *appHasPermission="'USER_CREATE'" mat-flat-button color="primary" routerLink="new">New user</a>
+</app-page-header>
+
+<app-search-bar placeholder="Search name, username, or email" (queryChange)="onSearch($event)" />
+
+<app-filter-panel title="Status">
+  <mat-form-field appearance="outline" floatLabel="always">
+    <mat-label>Status</mat-label>
+    <mat-select [value]="status()" (selectionChange)="onStatus($event.value)">
+      <mat-option value="">All statuses</mat-option>
+      <mat-option value="ACTIVE">Active</mat-option>
+      <mat-option value="INACTIVE">Inactive</mat-option>
+      <mat-option value="LOCKED">Locked</mat-option>
+    </mat-select>
+  </mat-form-field>
+</app-filter-panel>
+
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader layout="table" [rows]="5" />
+  } @else if (users().length === 0) {
+    <app-empty-state
+      title="No users"
+      message="No accounts match this search or status. Clear the filter, or create a user who can sign in."
+    >
+      <a *appHasPermission="'USER_CREATE'" mat-flat-button color="primary" routerLink="new">New user</a>
+    </app-empty-state>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Roles</th>
+          <th>Status</th>
+          <th class="end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (user of users(); track user.id) {
+          <tr>
+            <td data-label="Name">{{ user.fullName }}</td>
+            <td data-label="Username">{{ user.username }}</td>
+            <td data-label="Email">{{ user.email }}</td>
+            <td data-label="Roles">{{ roleNames(user) }}</td>
+            <td data-label="Status"><app-status-badge [status]="user.status" /></td>
+            <td class="end actions" data-label="Actions">
+              <div class="row-menu">
+                <a mat-button [routerLink]="[user.id]">Edit</a>
+                @if (auth.user()?.id !== user.id && auth.hasPermission('USER_DELETE')) {
+                  <button type="button" mat-button [matMenuTriggerFor]="menu" [attr.aria-label]="'More actions for ' + user.fullName">More</button>
+                  <mat-menu #menu="matMenu">
+                    <button type="button" mat-menu-item class="bf-menu-danger" (click)="remove(user)">Delete</button>
+                  </mat-menu>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+@if (!loading() && total() > 0) {
+  <app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />
+}

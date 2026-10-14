@@ -1,0 +1,115 @@
+<app-page-header title="Audit log" subtitle="Who changed what, with the previous and new values.">
+  <button *appHasPermission="'AUDIT_EXPORT'" mat-stroked-button type="button" [matMenuTriggerFor]="exportMenu" [disabled]="exporting()">
+    Export
+  </button>
+  <mat-menu #exportMenu="matMenu">
+    <button mat-menu-item type="button" (click)="exportLog('csv')">CSV</button>
+    <button mat-menu-item type="button" (click)="exportLog('xlsx')">Excel</button>
+    <button mat-menu-item type="button" (click)="exportLog('pdf')">PDF</button>
+  </mat-menu>
+</app-page-header>
+
+<app-filter-panel title="Filters">
+  <div class="audit-filters">
+    <app-iso-date-field label="From" subscriptSizing="dynamic" [value]="from()" (committed)="from.set($event)" />
+    <app-iso-date-field label="To" subscriptSizing="dynamic" [value]="to()" (committed)="to.set($event)" />
+    <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+      <mat-label>User</mat-label>
+      <input matInput [value]="user()" (input)="user.set($any($event.target).value)" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+      <mat-label>Module</mat-label>
+      <mat-select [value]="module()" (selectionChange)="module.set($event.value)">
+        <mat-option value="">All modules</mat-option>
+        @for (item of modules; track item) {
+          <mat-option [value]="item">{{ item }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+      <mat-label>Action</mat-label>
+      <mat-select [value]="action()" (selectionChange)="action.set($event.value)">
+        <mat-option value="">All actions</mat-option>
+        @for (item of actions; track item) {
+          <mat-option [value]="item">{{ item }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+      <mat-label>Entity</mat-label>
+      <input matInput placeholder="sale, purchase, product" [value]="entity()" (input)="entity.set($any($event.target).value)" />
+    </mat-form-field>
+    <div class="audit-filter-actions">
+      <button mat-flat-button color="primary" type="button" (click)="apply()">Apply</button>
+      <button mat-button type="button" (click)="reset()">Reset</button>
+    </div>
+  </div>
+</app-filter-panel>
+
+<app-search-bar placeholder="Search entity, id, or detail" [token]="searchToken()" (queryChange)="onSearch($event)" />
+
+@if (failed()) {
+  <app-error-state title="Could not load the audit log" [message]="errorMessage()" (retry)="apply()" />
+} @else if (loading()) {
+  <app-skeleton-loader [rows]="8" />
+} @else if (rows().length === 0) {
+  <app-empty-state title="No audit events" message="Nothing matches these filters." />
+} @else {
+  <div class="audit-layout">
+    <div class="bf-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>User</th>
+            <th>Action</th>
+            <th>Module</th>
+            <th>Entity</th>
+            <th>Outcome</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr [class.selected]="selected()?.id === row.id" (click)="open(row)">
+              <td>{{ when(row.timestamp) }}</td>
+              <td>{{ row.user }}</td>
+              <td>{{ row.action }}</td>
+              <td>{{ row.module }}</td>
+              <td>{{ row.entity || '—' }} <small>{{ row.entityId }}</small></td>
+              <td><app-status-badge [status]="row.outcome" /></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <aside class="audit-detail">
+      @if (detailFailed()) {
+        <p class="field-error">{{ detailFailed() }}</p>
+      } @else if (selected(); as event) {
+        <p class="kicker">{{ event.module }} · {{ event.action }}</p>
+        <h2>{{ event.detail || event.eventType }}</h2>
+        <ol class="timeline">
+          <li>
+            <time>{{ when(event.timestamp) }}</time>
+            <strong>{{ event.user }}</strong>
+            <p>{{ event.outcome }} · {{ event.entity || 'record' }} {{ event.entityId || '' }}</p>
+            @if (event.ipAddress) {
+              <p>IP {{ event.ipAddress }}</p>
+            }
+          </li>
+        </ol>
+        <section>
+          <h3>Previous value</h3>
+          <pre>{{ event.oldValue || '—' }}</pre>
+        </section>
+        <section>
+          <h3>New value</h3>
+          <pre>{{ event.newValue || '—' }}</pre>
+        </section>
+      } @else {
+        <p class="hint">Select an event to see the change.</p>
+      }
+    </aside>
+  </div>
+  <app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />
+}

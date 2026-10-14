@@ -1,0 +1,11 @@
+target/
+*.log
+.git/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!/.env.example
+**/application-local.yml

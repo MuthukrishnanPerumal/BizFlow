@@ -1,0 +1,63 @@
+@if (loading()) {
+  <app-skeleton-loader [rows]="6" />
+} @else if (failed()) {
+  <app-error-state title="Could not load return" [message]="errorMessage()" (retry)="load()" />
+} @else if (detail(); as row) {
+  <app-page-header [title]="row.returnNumber" [subtitle]="row.supplier.supplierName">
+    <app-status-badge [status]="row.status" />
+    <a mat-stroked-button [routerLink]="['/purchases', row.purchaseId]">Open purchase</a>
+    <a mat-stroked-button class="no-print" [routerLink]="['/purchase-returns', row.id, 'print']">Print</a>
+  </app-page-header>
+  <div class="sections">
+    <section class="panel">
+      <div class="facts">
+        <div><span>Purchase</span><strong>{{ row.purchaseNumber }}</strong></div>
+        <div><span>Invoice</span><strong>{{ row.invoiceNumber }}</strong></div>
+        <div><span>Date</span><strong>{{ date(row.returnDate) }}</strong></div>
+        <div><span>Value</span><strong>{{ money(row.grandTotal) }}</strong></div>
+        <div><span>Notes</span><strong>{{ row.notes || '—' }}</strong></div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>Items</h2>
+      <div class="bf-table-wrap">
+        <table>
+          <thead>
+            <tr><th>Product</th><th class="end">Qty</th><th class="end">Free</th><th class="end">Total</th></tr>
+          </thead>
+          <tbody>
+            @for (item of row.items; track item.id) {
+              <tr>
+                <td>{{ item.productName }}</td>
+                <td class="end">{{ item.quantity }}</td>
+                <td class="end">{{ item.freeQuantity }}</td>
+                <td class="end">{{ money(item.total) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>Stock impact</h2>
+      <div class="bf-table-wrap">
+        <table>
+          <thead>
+            <tr><th>Product</th><th>Type</th><th class="end">Out</th><th class="end">Balance</th><th>User</th></tr>
+          </thead>
+          <tbody>
+            @for (stock of row.stockImpact; track stock.id) {
+              <tr>
+                <td>{{ stock.productName }}</td>
+                <td>{{ stock.transactionType }}</td>
+                <td class="end">{{ stock.quantityOut }}</td>
+                <td class="end">{{ stock.runningBalance }}</td>
+                <td>{{ stock.user }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+}

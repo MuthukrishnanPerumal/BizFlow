@@ -1,0 +1,78 @@
+:host {
+  display: block;
+}
+
+.stack {
+  display: grid;
+  gap: 12px;
+  max-width: 960px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.modules {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+section {
+  border: 1px solid var(--bf-border);
+  border-radius: var(--bf-radius);
+  padding: 12px;
+  background: var(--bf-surface-muted);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.checks {
+  display: grid;
+  gap: 6px;
+}
+
+.field-error,
+.loading {
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+
+.field-error {
+  color: var(--bf-danger);
+}
+
+.loading {
+  color: var(--bf-text-secondary);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+button mat-progress-spinner {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+@media (max-width: 800px) {
+  .grid,
+  .modules {
+    grid-template-columns: 1fr;
+  }
+}

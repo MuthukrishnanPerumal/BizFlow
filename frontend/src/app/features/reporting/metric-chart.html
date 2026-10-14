@@ -1,0 +1,53 @@
+<section class="chart">
+  <header>
+    <h2>{{ title() }}</h2>
+    @if (caption()) {
+      <p>{{ caption() }}</p>
+    }
+  </header>
+  @if (!active()) {
+    <p class="quiet">{{ empty() }}</p>
+  } @else if (mode() === 'bar') {
+    <div class="bars">
+      @for (bar of barRows(); track bar.label) {
+        <div class="bar-row">
+          <span class="bar-label" [title]="bar.label">{{ bar.label }}</span>
+          <span class="bar-track">
+            <span class="bar-fill" [class.is-negative]="bar.negative" [style.width.%]="bar.width"></span>
+          </span>
+          <span class="bar-value">{{ bar.display }}</span>
+        </div>
+      }
+    </div>
+  } @else {
+    <svg [attr.viewBox]="'0 0 ' + plot().width + ' ' + plot().height" role="img" [attr.aria-label]="title()">
+      <line class="axis" x1="8" [attr.x2]="plot().width - 8" [attr.y1]="plot().zero" [attr.y2]="plot().zero" />
+      @for (line of plot().lines; track line.name) {
+        @if (line.area) {
+          <polygon [attr.points]="line.area" [attr.fill]="line.color" fill-opacity="0.08" stroke="none" />
+        }
+        <polyline
+          [attr.points]="line.points"
+          fill="none"
+          [attr.stroke]="line.color"
+          stroke-width="1.75"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+        />
+        @for (dot of line.dots; track $index) {
+          <circle [attr.cx]="dot.x" [attr.cy]="dot.y" r="2.4" [attr.fill]="line.color" />
+        }
+      }
+      @for (label of plot().labels; track label.label) {
+        <text [attr.x]="label.x" [attr.y]="plot().height - 6">{{ label.label }}</text>
+      }
+    </svg>
+    @if (plot().lines.length > 1) {
+      <div class="legend">
+        @for (line of plot().lines; track line.name) {
+          <span><i [style.background]="line.color"></i>{{ line.name }}</span>
+        }
+      </div>
+    }
+  }
+</section>

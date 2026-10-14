@@ -1,0 +1,94 @@
+<header class="bf-header">
+  <button
+    type="button"
+    mat-icon-button
+    [attr.aria-label]="navLabel()"
+    [attr.aria-expanded]="layout.mobile() ? layout.mobileOpen() : !layout.collapsed()"
+    (click)="layout.toggleNavigation()"
+  >
+    <mat-icon aria-hidden="true">menu</mat-icon>
+  </button>
+
+  <nav class="bf-crumbs" aria-label="Breadcrumb">
+    @for (crumb of page.crumbs(); track crumb.url + crumb.label; let last = $last) {
+      @if (last || crumb.link === false) {
+        <span [class.current]="last">{{ crumb.label }}</span>
+      } @else {
+        <a [routerLink]="crumb.url">{{ crumb.label }}</a>
+      }
+      @if (!last) {
+        <span aria-hidden="true">/</span>
+      }
+    }
+  </nav>
+
+  <div class="bf-header-actions">
+    @if (!locked()) {
+      <button type="button" class="bf-search-trigger" (click)="openSearch()">
+        <mat-icon aria-hidden="true">search</mat-icon>
+        <span>Search</span>
+        <kbd>Ctrl+K</kbd>
+      </button>
+    }
+
+    <button
+      *appHasPermission="'NOTIFICATION_VIEW'"
+      type="button"
+      mat-icon-button
+      [matMenuTriggerFor]="alertsMenu"
+      [attr.aria-label]="notificationLabel()"
+      (click)="inbox.loadRecent()"
+    >
+      <mat-icon aria-hidden="true">notifications</mat-icon>
+      @if (inbox.unread() > 0) {
+        <span class="bf-count">{{ inbox.unread() > 9 ? '9+' : inbox.unread() }}</span>
+      }
+    </button>
+    <mat-menu #alertsMenu="matMenu">
+      @if (inbox.items().length === 0) {
+        <div class="bf-menu-empty">No notifications</div>
+      } @else {
+        @for (item of inbox.items(); track item.id) {
+          <button type="button" mat-menu-item class="bf-alert" (click)="inbox.markRead(item.id)">
+            <span class="bf-alert-title">{{ item.title }}</span>
+            <span class="bf-alert-copy">{{ item.message }}</span>
+          </button>
+        }
+      }
+      <a mat-menu-item routerLink="/notifications">View all</a>
+    </mat-menu>
+
+    <button
+      type="button"
+      class="bf-user"
+      [matMenuTriggerFor]="userMenu"
+      [attr.aria-label]="displayName() + ', ' + roleLabel()"
+    >
+      <span class="bf-avatar" aria-hidden="true">{{ initials() }}</span>
+      <span class="bf-user-copy">
+        <span class="bf-user-name">{{ displayName() }}</span>
+        <span class="bf-user-role">{{ roleLabel() }}</span>
+      </span>
+    </button>
+    <mat-menu #userMenu="matMenu">
+      <div class="bf-menu-note" *appHasPermission="'AUTHENTICATED'">
+        <strong>{{ displayName() }}</strong>
+        @if (auth.user(); as user) {
+          <app-status-badge [status]="user.status" />
+        }
+      </div>
+      @if (auth.isAuthenticated()) {
+        <a mat-menu-item routerLink="/account/password">
+          <mat-icon>key</mat-icon>
+          <span>Change password</span>
+        </a>
+        <button type="button" mat-menu-item (click)="signOut()">
+          <mat-icon>logout</mat-icon>
+          <span>Sign out</span>
+        </button>
+      } @else {
+        <div class="bf-menu-empty">No active session</div>
+      }
+    </mat-menu>
+  </div>
+</header>

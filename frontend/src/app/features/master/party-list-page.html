@@ -1,0 +1,79 @@
+<app-page-header [title]="config.title" [subtitle]="config.subtitle">
+  <a *appHasPermission="config.createPermission" mat-flat-button color="primary" routerLink="new">
+    New {{ config.singular }}
+  </a>
+</app-page-header>
+
+<app-search-bar placeholder="Search code, name, phone, email, or city" [token]="searchToken()" (queryChange)="onSearch($event)" />
+
+<app-smart-filters [chips]="chips()" (remove)="removeChip($event)" (clear)="clearFilters()">
+  <div data-primary class="filters">
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Status</mat-label>
+      <mat-select [value]="status()" (selectionChange)="onStatus($event.value)">
+        <mat-option value="">All statuses</mat-option>
+        <mat-option value="ACTIVE">Active</mat-option>
+        <mat-option value="INACTIVE">Inactive</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+</app-smart-filters>
+
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader layout="table" [rows]="6" />
+  } @else if (failed()) {
+    <app-error-state title="Could not load records" [message]="errorMessage()" (retry)="load()" />
+  } @else if (rows().length === 0) {
+    <app-empty-state
+      [title]="filtered() ? 'No matching ' + config.title.toLowerCase() : config.emptyTitle"
+      [message]="filtered() ? 'Nothing matches the current search or status.' : config.emptyMessage"
+    >
+      @if (filtered()) {
+        <button type="button" mat-stroked-button (click)="clearFilters()">Clear filters</button>
+      } @else {
+        <a *appHasPermission="config.createPermission" mat-flat-button color="primary" routerLink="new">New {{ config.singular }}</a>
+      }
+    </app-empty-state>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th><button type="button" class="sort" (click)="toggleSort(config.codeField)">Code <mat-icon>{{ sortMark(config.codeField) }}</mat-icon></button></th>
+          <th><button type="button" class="sort" (click)="toggleSort(config.nameField)">Name <mat-icon>{{ sortMark(config.nameField) }}</mat-icon></button></th>
+          <th>Phone</th>
+          <th><button type="button" class="sort" (click)="toggleSort('city')">City <mat-icon>{{ sortMark('city') }}</mat-icon></button></th>
+          <th><button type="button" class="sort" (click)="toggleSort('status')">Status <mat-icon>{{ sortMark('status') }}</mat-icon></button></th>
+          <th class="end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.id) {
+          <tr>
+            <td data-label="Code">{{ codeOf(row) }}</td>
+            <td data-label="Name">{{ nameOf(row) }}</td>
+            <td data-label="Phone">{{ row.phone || '—' }}</td>
+            <td data-label="City">{{ row.city || '—' }}</td>
+            <td data-label="Status"><app-status-badge [status]="row.status" /></td>
+            <td class="end actions" data-label="Actions">
+              <div class="row-menu">
+                <a mat-button [routerLink]="[row.id]">Open</a>
+                <button type="button" mat-button [matMenuTriggerFor]="menu" [attr.aria-label]="'More actions for ' + nameOf(row)">More</button>
+                <mat-menu #menu="matMenu">
+                  <a mat-menu-item [routerLink]="[row.id, 'edit']">Edit</a>
+                  @if (auth.hasPermission(config.deletePermission)) {
+                    <button type="button" mat-menu-item (click)="remove(row)">Delete</button>
+                  }
+                </mat-menu>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+@if (!loading() && !failed() && total() > 0) {
+  <app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />
+}

@@ -1,0 +1,40 @@
+.report-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.report-links a {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  background: var(--bf-surface);
+  border: 1px solid var(--bf-border);
+  border-radius: var(--bf-radius);
+  color: inherit;
+  text-decoration: none;
+}
+
+.report-links a:hover {
+  border-color: var(--bf-accent);
+}
+
+.report-links mat-icon {
+  color: var(--bf-accent);
+}
+
+.report-links strong {
+  font-size: 16px;
+}
+
+.report-links span {
+  color: var(--bf-text-secondary);
+  font-size: 13px;
+}
+
+@media (max-width: 800px) {
+  .report-links {
+    grid-template-columns: 1fr;
+  }
+}

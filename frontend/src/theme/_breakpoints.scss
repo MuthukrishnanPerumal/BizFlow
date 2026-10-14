@@ -1,0 +1,12 @@
+// Viewport widths shared by the design system.
+// CSS variables cannot be used inside media queries, so these stay Sass-only.
+$bf-screen-sm: 640px;
+$bf-screen-md: 720px;
+$bf-screen-lg: 960px;
+$bf-screen-xl: 1200px;
+
+@mixin bf-below($max) {
+  @media (max-width: $max) {
+    @content;
+  }
+}

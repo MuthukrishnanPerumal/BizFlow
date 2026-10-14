@@ -1,0 +1,111 @@
+<app-page-header title="Products" subtitle="Catalog used by purchasing, sales, and inventory.">
+  <a *appHasPermission="'PRODUCT_CREATE'" mat-flat-button color="primary" routerLink="new">New product</a>
+</app-page-header>
+
+<app-search-bar placeholder="Search code, name, or barcode" [token]="searchToken()" (queryChange)="onSearch($event)" />
+
+<app-smart-filters
+  [chips]="chips()"
+  [advanced]="true"
+  [forceOpen]="stockType() !== '' || category() !== null"
+  (remove)="removeChip($event)"
+  (clear)="clearFilters()"
+>
+  <div data-primary class="filters">
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Status</mat-label>
+      <mat-select [value]="status()" (selectionChange)="onStatus($event.value)">
+        <mat-option value="">All statuses</mat-option>
+        <mat-option value="ACTIVE">Active</mat-option>
+        <mat-option value="INACTIVE">Inactive</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+  <div data-advanced class="filters">
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Stock type</mat-label>
+      <mat-select [value]="stockType()" (selectionChange)="onStockType($event.value)">
+        <mat-option value="">All stock types</mat-option>
+        <mat-option value="NONE">None</mat-option>
+        <mat-option value="BATCH">Batch</mat-option>
+        <mat-option value="SERIAL">Serial</mat-option>
+        <mat-option value="PICS">Piece</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <app-record-lookup label="Category" resource="categories" [selected]="category()" (selectedChange)="onCategory($event)" />
+    <form (ngSubmit)="findBarcode()">
+      <mat-form-field appearance="outline" floatLabel="always">
+        <mat-label>Barcode lookup</mat-label>
+        <input matInput [formControl]="barcode" />
+        <button mat-icon-button matSuffix type="submit" aria-label="Find barcode"><mat-icon>qr_code_scanner</mat-icon></button>
+      </mat-form-field>
+    </form>
+  </div>
+</app-smart-filters>
+
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader layout="table" [rows]="6" />
+  } @else if (failed()) {
+    <app-error-state title="Could not load products" [message]="errorMessage()" (retry)="load()" />
+  } @else if (rows().length === 0) {
+    <app-empty-state
+      [title]="filtered() ? 'No matching products' : 'No products yet'"
+      [message]="filtered() ? 'Nothing matches the current search or filters.' : 'Create your first product to sell, purchase, and track stock.'"
+    >
+      @if (filtered()) {
+        <button type="button" mat-stroked-button (click)="clearFilters()">Clear filters</button>
+      } @else {
+        <a *appHasPermission="'PRODUCT_CREATE'" mat-flat-button color="primary" routerLink="new">New product</a>
+      }
+    </app-empty-state>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th><button type="button" class="sort" (click)="toggleSort('productCode')">Code <mat-icon>{{ sortMark('productCode') }}</mat-icon></button></th>
+          <th><button type="button" class="sort" (click)="toggleSort('name')">Name <mat-icon>{{ sortMark('name') }}</mat-icon></button></th>
+          <th>Category</th>
+          <th>Unit</th>
+          <th><button type="button" class="sort" (click)="toggleSort('sellingPrice')">Selling price <mat-icon>{{ sortMark('sellingPrice') }}</mat-icon></button></th>
+          <th><button type="button" class="sort" (click)="toggleSort('status')">Status <mat-icon>{{ sortMark('status') }}</mat-icon></button></th>
+          <th class="end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.id) {
+          <tr>
+            <td data-detail data-label="Code">{{ row.productCode }}</td>
+            <td data-label="Name">
+              {{ row.name }}
+              <button type="button" class="row-details" aria-expanded="false">
+                <span class="when-closed">Details</span>
+                <span class="when-open">Hide</span>
+              </button>
+            </td>
+            <td data-detail data-label="Category">{{ row.category.name }}</td>
+            <td data-detail data-label="Unit">{{ row.unit.shortName }}</td>
+            <td data-label="Selling price">{{ money(row.sellingPrice) }}</td>
+            <td data-label="Status"><app-status-badge [status]="row.status" /></td>
+            <td class="end actions" data-label="Actions">
+              <div class="row-menu">
+                <a mat-button [routerLink]="[row.id]">Open</a>
+                <button type="button" mat-button [matMenuTriggerFor]="menu" [attr.aria-label]="'More actions for ' + row.name">More</button>
+                <mat-menu #menu="matMenu">
+                  <a mat-menu-item [routerLink]="[row.id]" [queryParams]="{ tab: 'edit' }">Edit</a>
+                  @if (auth.hasPermission('PRODUCT_DELETE')) {
+                    <button type="button" mat-menu-item (click)="remove(row)">Delete</button>
+                  }
+                </mat-menu>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+@if (!loading() && !failed() && total() > 0) {
+  <app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />
+}

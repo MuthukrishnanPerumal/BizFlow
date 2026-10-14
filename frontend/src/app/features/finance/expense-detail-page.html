@@ -1,0 +1,92 @@
+<app-page-header [title]="expense()?.expenseNumber ?? 'Expense'" [subtitle]="expense()?.description ?? 'Expense detail'">
+  <a mat-button routerLink="..">Back</a>
+  @if (expense()?.status === 'POSTED') {
+    <a *appHasPermission="'EXPENSE_UPDATE'" mat-stroked-button [routerLink]="['edit']">Edit</a>
+    <button *appHasPermission="'EXPENSE_CANCEL'" mat-stroked-button color="warn" type="button" (click)="cancel()">Cancel</button>
+  }
+</app-page-header>
+
+<app-finance-nav />
+
+@if (errorMessage() && expense()) {
+  <p class="banner" role="alert">{{ errorMessage() }}</p>
+}
+
+@if (loading()) {
+  <app-skeleton-loader [rows]="5" />
+} @else if (failed()) {
+  <app-error-state title="Could not load expense" [message]="errorMessage()" (retry)="load(expenseId())" />
+} @else if (expense(); as row) {
+  <section class="fin-kpis">
+    <article class="fin-kpi is-danger">
+      <span>Amount</span>
+      <strong>{{ money(row.amount) }}</strong>
+      <small>{{ date(row.expenseDate) }}</small>
+    </article>
+    <article class="fin-kpi">
+      <span>Category</span>
+      <strong>{{ row.category }}</strong>
+      <small>{{ row.paymentMethod.replaceAll('_', ' ') }}</small>
+    </article>
+    <article class="fin-kpi">
+      <span>Status</span>
+      <strong><app-status-badge [status]="row.status" /></strong>
+      <small>{{ row.referenceNumber || 'No reference' }}</small>
+    </article>
+  </section>
+
+  <div class="fin-grid">
+    <article class="fin-panel">
+      <h2>Notes</h2>
+      <p>{{ row.notes || 'No notes.' }}</p>
+    </article>
+    <article class="fin-panel">
+      <h2>Ledger</h2>
+      @if (row.journalStatus) {
+        <app-status-badge [status]="row.journalStatus" />
+      }
+      <table>
+        <thead>
+          <tr>
+            <th>Account</th>
+            <th class="end">Debit</th>
+            <th class="end">Credit</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of row.journal; track line.lineNumber) {
+            <tr>
+              <td>{{ line.accountCode }} {{ line.accountName }}</td>
+              <td class="end">{{ money(line.debit) }}</td>
+              <td class="end">{{ money(line.credit) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </article>
+  </div>
+
+  <article class="fin-panel">
+    <h2>History</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>When</th>
+          <th>Event</th>
+          <th>Actor</th>
+          <th>Detail</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (audit of row.audits; track audit.createdAt + audit.eventType) {
+          <tr>
+            <td>{{ when(audit.createdAt) }}</td>
+            <td>{{ audit.eventType.replaceAll('_', ' ') }}</td>
+            <td>{{ audit.actor }}</td>
+            <td>{{ audit.detail }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </article>
+}

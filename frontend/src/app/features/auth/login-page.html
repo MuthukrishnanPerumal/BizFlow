@@ -1,0 +1,68 @@
+<div class="login-shell">
+  <form class="card" [formGroup]="form" (ngSubmit)="submit()" novalidate aria-labelledby="login-title">
+    <p class="card-kicker">Welcome back</p>
+    <h1 id="login-title">Sign in</h1>
+    <p class="card-copy">Use the username or email on your account.</p>
+
+    @if (error()) {
+      <p class="alert" role="alert">{{ error() }}</p>
+    }
+
+    <div class="field" [class.invalid]="invalid('username')">
+      <label class="field-label" for="login-username">Username or email <span class="req" aria-hidden="true">*</span></label>
+      <mat-form-field appearance="outline">
+        <input
+          id="login-username"
+          matInput
+          formControlName="username"
+          autocomplete="username"
+          autocapitalize="none"
+          spellcheck="false"
+          [attr.aria-invalid]="invalid('username')"
+          [attr.aria-describedby]="invalid('username') ? 'login-username-error' : null"
+        />
+      </mat-form-field>
+      @if (invalid('username')) {
+        <p id="login-username-error" class="field-error" role="status">Enter your username or email.</p>
+      }
+    </div>
+
+    <div class="field" [class.invalid]="invalid('password')">
+      <label class="field-label" for="login-password">Password <span class="req" aria-hidden="true">*</span></label>
+      <mat-form-field appearance="outline">
+        <input
+          id="login-password"
+          matInput
+          formControlName="password"
+          [type]="passwordVisible() ? 'text' : 'password'"
+          autocomplete="current-password"
+          [attr.aria-invalid]="invalid('password')"
+          [attr.aria-describedby]="invalid('password') ? 'login-password-error' : null"
+        />
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
+          [attr.aria-pressed]="passwordVisible()"
+          (click)="passwordVisible.set(!passwordVisible())"
+        >
+          <mat-icon>{{ passwordVisible() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+      </mat-form-field>
+      @if (invalid('password')) {
+        <p id="login-password-error" class="field-error" role="status">Enter your password.</p>
+      }
+    </div>
+
+    <button mat-flat-button color="primary" type="submit" class="submit" [disabled]="submitting()" [attr.aria-busy]="submitting() ? true : null">
+      @if (submitting()) {
+        <mat-progress-spinner mode="indeterminate" diameter="18" />
+        <span>Signing in</span>
+      } @else {
+        <span>Sign in</span>
+      }
+    </button>
+    <p class="card-note">What you can open is limited to the roles on this account.</p>
+  </form>
+</div>

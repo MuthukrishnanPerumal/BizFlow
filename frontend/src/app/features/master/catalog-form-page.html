@@ -1,0 +1,90 @@
+<app-page-header
+  [title]="editing ? 'Edit ' + config.singular : 'New ' + config.singular"
+  [subtitle]="config.subtitle"
+>
+  <a mat-button [routerLink]="'/' + config.resource">Back to {{ config.title.toLowerCase() }}</a>
+</app-page-header>
+
+@if (loading()) {
+  <app-skeleton-loader [rows]="6" />
+} @else {
+  <form class="stack" [formGroup]="form" (ngSubmit)="submit()">
+    <p class="hint">Fields marked with * are required. Status defaults to active.</p>
+    <app-form-section title="Basic information" description="Codes and names must stay unique among current records.">
+      <div class="grid">
+        @if (config.hasCode) {
+          <div>
+            <mat-form-field appearance="outline">
+              <mat-label>Code</mat-label>
+              <input matInput formControlName="code" autocomplete="off" />
+            </mat-form-field>
+            @if (invalid('code')) {
+              <p class="field-error">{{ form.controls.code.hasError('server') ? form.controls.code.getError('server') : 'Use 2 to 32 letters, numbers, underscores, or hyphens.' }}</p>
+            }
+          </div>
+        }
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Name</mat-label>
+            <input matInput formControlName="name" />
+          </mat-form-field>
+          @if (invalid('name')) {
+            <p class="field-error">{{ form.controls.name.hasError('server') ? form.controls.name.getError('server') : 'Enter a name.' }}</p>
+          }
+        </div>
+        @if (config.hasShortName) {
+          <div>
+            <mat-form-field appearance="outline">
+              <mat-label>Short name</mat-label>
+              <input matInput formControlName="shortName" autocomplete="off" />
+            </mat-form-field>
+            @if (invalid('shortName')) {
+              <p class="field-error">{{ form.controls.shortName.hasError('server') ? form.controls.shortName.getError('server') : 'Use 1 to 16 letters or numbers.' }}</p>
+            }
+          </div>
+        }
+        <div class="span-2">
+          <mat-form-field appearance="outline">
+            <mat-label>Description</mat-label>
+            <textarea matInput rows="3" formControlName="description"></textarea>
+          </mat-form-field>
+          @if (invalid('description')) {
+            <p class="field-error">Description is too long.</p>
+          }
+        </div>
+      </div>
+    </app-form-section>
+
+    <app-form-section title="Status" description="Inactive records stay available to history and cannot be chosen on new products.">
+      @if (config.hasDecimal) {
+        <div class="checks">
+          <mat-checkbox formControlName="decimalAllowed">Allow decimal quantities</mat-checkbox>
+        </div>
+        <p class="hint">Piece and box stay whole numbers. Weight and volume units can store decimals.</p>
+      }
+      <mat-form-field appearance="outline">
+        <mat-label>Status</mat-label>
+        <mat-select formControlName="status">
+          <mat-option value="ACTIVE">Active</mat-option>
+          <mat-option value="INACTIVE">Inactive</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </app-form-section>
+
+    <div class="actions">
+      @if (canSave) {
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()" [attr.aria-busy]="saving() ? true : null">
+          @if (saving()) {
+            <mat-progress-spinner diameter="18" mode="indeterminate" />
+          }
+          {{ saving() ? 'Saving…' : (editing ? 'Save changes' : 'Create ' + config.singular) }}
+        </button>
+      }
+      <button type="button" mat-button (click)="resetForm()">Reset</button>
+      <a mat-button [routerLink]="'/' + config.resource">Cancel</a>
+      @if (editing && auth.hasPermission(config.deletePermission)) {
+        <button type="button" mat-button color="warn" (click)="remove()">Delete</button>
+      }
+    </div>
+  </form>
+}

@@ -1,0 +1,11 @@
+<header class="bf-page-header">
+  <div>
+    <h1>{{ title() }}</h1>
+    @if (subtitle()) {
+      <p>{{ subtitle() }}</p>
+    }
+  </div>
+  <div class="bf-page-header-actions">
+    <ng-content />
+  </div>
+</header>

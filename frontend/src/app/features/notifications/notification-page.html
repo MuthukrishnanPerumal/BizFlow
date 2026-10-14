@@ -1,0 +1,49 @@
+<app-page-header title="Notifications" subtitle="Low stock, failed transactions, and system messages.">
+  <button mat-stroked-button type="button" (click)="markAll()">Mark all read</button>
+</app-page-header>
+
+<div class="filters">
+  <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+    <mat-label>Type</mat-label>
+    <mat-select [value]="kind()" (selectionChange)="onKind($event.value)">
+      @for (item of kinds; track item.id) {
+        <mat-option [value]="item.id">{{ item.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+    <mat-label>Status</mat-label>
+    <mat-select [value]="unreadOnly()" (selectionChange)="onUnread($event.value)">
+      <mat-option [value]="false">All</mat-option>
+      <mat-option [value]="true">Unread</mat-option>
+    </mat-select>
+  </mat-form-field>
+</div>
+
+@if (errorMessage()) {
+  <p class="field-error">{{ errorMessage() }}</p>
+}
+
+@if (failed()) {
+  <app-error-state title="Could not load notifications" [message]="errorMessage()" (retry)="onPage(page())" />
+} @else if (loading()) {
+  <app-skeleton-loader [rows]="6" />
+} @else if (items().length === 0) {
+  <app-empty-state title="No notifications" message="Stock alerts and failed transactions will appear here." />
+} @else {
+  <ol class="inbox">
+    @for (item of items(); track item.id) {
+      <li [class.unread]="!item.readAt" [class.critical]="item.severity === 'CRITICAL'">
+        <div>
+          <strong>{{ item.title }}</strong>
+          <p>{{ item.message }}</p>
+          <time>{{ when(item.createdAt) }} · {{ item.kind.replaceAll('_', ' ') }}</time>
+        </div>
+        @if (!item.readAt) {
+          <button mat-button type="button" (click)="markRead(item)">Mark read</button>
+        }
+      </li>
+    }
+  </ol>
+  <app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />
+}

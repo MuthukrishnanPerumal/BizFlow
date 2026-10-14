@@ -1,0 +1,22 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+<mat-dialog-content>
+  @if (data.destructive) {
+    <p id="bf-confirm-detail" class="consequence">
+      <mat-icon aria-hidden="true">warning</mat-icon>
+      <span>{{ data.message }}</span>
+    </p>
+  } @else {
+    <p id="bf-confirm-detail">{{ data.message }}</p>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button type="button" mat-stroked-button (click)="cancel()">{{ data.cancelLabel }}</button>
+  <button
+    type="button"
+    mat-flat-button
+    [color]="data.destructive ? 'warn' : 'primary'"
+    (click)="confirm()"
+  >
+    {{ data.confirmLabel }}
+  </button>
+</mat-dialog-actions>

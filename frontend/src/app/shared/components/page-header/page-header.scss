@@ -1,0 +1,44 @@
+@use 'theme/breakpoints' as bp;
+
+.bf-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bf-space-4);
+  margin-bottom: var(--bf-space-4);
+}
+
+h1 {
+  margin: 0;
+  font-size: var(--bf-text-page-size);
+  line-height: var(--bf-leading-tight);
+  font-weight: var(--bf-weight-semibold);
+  letter-spacing: -0.015em;
+  color: var(--bf-text);
+}
+
+p {
+  margin: var(--bf-space-1) 0 0;
+  color: var(--bf-text-secondary);
+  font-size: var(--bf-text-secondary-size);
+  line-height: var(--bf-leading-body);
+}
+
+.bf-page-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bf-space-2);
+  flex-shrink: 0;
+}
+
+@include bp.bf-below(bp.$bf-screen-md) {
+  .bf-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  h1 {
+    font-size: var(--bf-text-page-size-sm);
+  }
+}

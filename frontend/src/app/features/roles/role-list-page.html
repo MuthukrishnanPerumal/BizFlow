@@ -1,0 +1,55 @@
+<app-page-header title="Roles" subtitle="Named sets of permissions. Business rules use the permissions, not a fixed role name.">
+  <a *appHasPermission="'ROLE_CREATE'" mat-flat-button color="primary" routerLink="new">New role</a>
+</app-page-header>
+
+<app-search-bar placeholder="Search role name or code" (queryChange)="onSearch($event)" />
+
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader layout="table" [rows]="5" />
+  } @else if (roles().length === 0) {
+    <app-empty-state
+      title="No roles"
+      message="No roles match this search. Clear it, or create a role and assign permissions to it."
+    >
+      <a *appHasPermission="'ROLE_CREATE'" mat-flat-button color="primary" routerLink="new">New role</a>
+    </app-empty-state>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Code</th>
+          <th>Type</th>
+          <th>Permissions</th>
+          <th class="end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (role of roles(); track role.id) {
+          <tr>
+            <td data-label="Name">{{ role.name }}</td>
+            <td data-label="Code">{{ role.code }}</td>
+            <td data-label="Type">{{ role.systemRole ? 'System' : 'Custom' }}</td>
+            <td data-label="Permissions">{{ role.permissions.length }}</td>
+            <td class="end actions" data-label="Actions">
+              <div class="row-menu">
+                <a mat-button [routerLink]="[role.id]">Edit</a>
+                @if (!role.systemRole) {
+                  <button *appHasPermission="'ROLE_DELETE'" type="button" mat-button [matMenuTriggerFor]="menu" [attr.aria-label]="'More actions for ' + role.name">More</button>
+                  <mat-menu #menu="matMenu">
+                    <button type="button" mat-menu-item class="bf-menu-danger" (click)="remove(role)">Delete</button>
+                  </mat-menu>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+@if (!loading() && total() > 0) {
+  <app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />
+}

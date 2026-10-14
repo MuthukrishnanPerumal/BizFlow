@@ -1,0 +1,74 @@
+<app-page-header [title]="transfer()?.transferNumber ?? 'Transfer'" [subtitle]="transfer() ? transfer()!.fromLocationName + ' to ' + transfer()!.toLocationName : 'Transfer detail'">
+  <a mat-stroked-button routerLink="/stock-transfer">All transfers</a>
+  @if (transfer()?.status === 'DRAFT') {
+    <button mat-stroked-button type="button" (click)="confirmTransfer()">Confirm</button>
+  }
+  @if (transfer()?.status === 'DRAFT' || transfer()?.status === 'CONFIRMED') {
+    <button mat-flat-button color="primary" type="button" (click)="completeTransfer()">Complete</button>
+    <button mat-stroked-button type="button" (click)="cancelTransfer()">Cancel</button>
+  }
+</app-page-header>
+<app-inventory-nav />
+
+@if (loading()) {
+  <app-skeleton-loader [rows]="5" />
+} @else if (failed()) {
+  <app-error-state title="Could not load the transfer" [message]="errorMessage()" (retry)="load()" />
+} @else if (transfer(); as transfer) {
+  <section class="inv-kpis">
+    <article class="inv-kpi">
+      <span>Status</span>
+      <strong><app-status-badge [status]="transfer.status" /></strong>
+      <small>{{ date(transfer.transferDate) }}</small>
+    </article>
+    <article class="inv-kpi">
+      <span>From</span>
+      <strong>{{ transfer.fromLocationCode }}</strong>
+      <small>{{ transfer.fromLocationName }}</small>
+    </article>
+    <article class="inv-kpi">
+      <span>To</span>
+      <strong>{{ transfer.toLocationCode }}</strong>
+      <small>{{ transfer.toLocationName }}</small>
+    </article>
+    <article class="inv-kpi">
+      <span>Posted by</span>
+      <strong>{{ transfer.user }}</strong>
+      <small>{{ transfer.reason }}</small>
+    </article>
+  </section>
+  @if (transfer.notes) {
+    <p>{{ transfer.notes }}</p>
+  }
+  <div class="bf-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Batch</th>
+          <th>Expiry</th>
+          <th class="end">Quantity</th>
+          <th class="end">Unit cost</th>
+          <th class="end">Value</th>
+          <th>Serials</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (line of transfer.lines; track line.id) {
+          <tr>
+            <td>
+              <a [routerLink]="['/inventory/products', line.productId]">{{ line.productName }}</a>
+              <small>{{ line.productCode }}</small>
+            </td>
+            <td>{{ line.batch || '—' }}</td>
+            <td>{{ date(line.expiryDate) }}</td>
+            <td class="end">{{ qty(line.quantity) }}</td>
+            <td class="end">{{ money(line.unitCost) }}</td>
+            <td class="end">{{ money(line.totalValue) }}</td>
+            <td>{{ line.serials.length ? line.serials.join(', ') : '—' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

@@ -1,0 +1,81 @@
+<app-page-header title="Inventory valuation" subtitle="Average cost is the official method. FIFO layers are kept for comparison and future switching." />
+<app-inventory-nav />
+<app-filter-panel title="Filters">
+  <div class="filters">
+    <app-search-bar placeholder="Search product, code, or category" (queryChange)="onSearch($event)" />
+    <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+      <mat-label>Location</mat-label>
+      <mat-select [value]="locationId() ?? ''" (selectionChange)="onLocation($event.value)">
+        <mat-option value="">All locations</mat-option>
+        @for (location of locations(); track location.id) {
+          <mat-option [value]="location.id">{{ location.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+</app-filter-panel>
+
+@if (loading()) {
+  <app-skeleton-loader [rows]="6" />
+} @else if (failed()) {
+  <app-error-state title="Could not load valuation" [message]="errorMessage()" (retry)="load()" />
+} @else if (report(); as report) {
+  <section class="inv-kpis">
+    <article class="inv-kpi">
+      <span>Official value</span>
+      <strong>{{ money(report.summary.officialValue) }}</strong>
+      <small>{{ label(report.summary.method) }}</small>
+    </article>
+    <article class="inv-kpi">
+      <span>Average cost value</span>
+      <strong>{{ money(report.summary.averageValue) }}</strong>
+      <small>{{ qty(report.summary.quantity) }} units</small>
+    </article>
+    <article class="inv-kpi">
+      <span>FIFO value</span>
+      <strong>{{ money(report.summary.fifoValue) }}</strong>
+      <small>Open cost layers</small>
+    </article>
+    <article class="inv-kpi">
+      <span>Products</span>
+      <strong>{{ report.summary.skuCount }}</strong>
+      <small>With quantity on hand</small>
+    </article>
+  </section>
+  <div class="bf-table-wrap">
+    @if (report.items.length === 0) {
+      <app-empty-state title="No valued stock" message="Valuation appears after stock is received." />
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th><button type="button" class="sort" (click)="toggleSort('productName')">Product <mat-icon>{{ sortMark('productName') }}</mat-icon></button></th>
+            <th>Category</th>
+            <th class="end"><button type="button" class="sort" (click)="toggleSort('currentStock')">Quantity <mat-icon>{{ sortMark('currentStock') }}</mat-icon></button></th>
+            <th class="end">Average cost</th>
+            <th class="end"><button type="button" class="sort" (click)="toggleSort('stockValue')">Average value <mat-icon>{{ sortMark('stockValue') }}</mat-icon></button></th>
+            <th class="end">FIFO value</th>
+            <th class="end">Official</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of report.items; track row.productId) {
+            <tr>
+              <td>
+                <a [routerLink]="['/inventory/products', row.productId]">{{ row.productName }}</a>
+                <small>{{ row.productCode }}</small>
+              </td>
+              <td>{{ row.categoryName }}</td>
+              <td class="end">{{ qty(row.quantity) }}</td>
+              <td class="end">{{ money(row.averageCost) }}</td>
+              <td class="end">{{ money(row.averageValue) }}</td>
+              <td class="end">{{ money(row.fifoValue) }}</td>
+              <td class="end">{{ money(row.officialValue) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <app-pagination [page]="page()" [pageSize]="pageSize" [total]="report.totalElements" (pageChange)="onPage($event)" />
+    }
+  </div>
+}

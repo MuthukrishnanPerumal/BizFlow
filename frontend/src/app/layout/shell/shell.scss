@@ -1,0 +1,79 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.bf-skip {
+  position: absolute;
+  left: 12px;
+  top: -40px;
+  z-index: 50;
+  background: var(--bf-surface);
+  color: var(--bf-text);
+  padding: 8px 12px;
+  border: 1px solid var(--bf-border-strong);
+}
+
+.bf-skip:focus {
+  top: 8px;
+}
+
+.bf-shell,
+.bf-container {
+  min-height: 100vh;
+  background: var(--bf-bg);
+}
+
+.bf-sidenav {
+  width: var(--bf-sidebar-w);
+  background: var(--bf-sidebar);
+  border-right: 0;
+  color: var(--bf-sidebar-text);
+  transition: width 180ms ease;
+}
+
+.is-collapsed .bf-sidenav {
+  width: var(--bf-sidebar-collapsed);
+}
+
+.is-mobile .bf-sidenav,
+.is-mobile.is-collapsed .bf-sidenav {
+  transition: none;
+}
+
+.bf-content-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bf-bg);
+}
+
+.bf-main {
+  flex: 1;
+  padding: var(--bf-space-5) var(--bf-space-6) var(--bf-space-6);
+  min-width: 0;
+}
+
+@media (max-width: 959px) {
+  .bf-sidenav,
+  .is-collapsed .bf-sidenav,
+  .is-mobile .bf-sidenav {
+    width: min(288px, 86vw);
+  }
+
+  .bf-main {
+    padding: var(--bf-space-4);
+  }
+}
+
+@media (max-width: 719px) {
+  .bf-main {
+    padding: var(--bf-space-3) var(--bf-space-3) var(--bf-space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bf-sidenav {
+    transition: none;
+  }
+}

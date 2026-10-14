@@ -1,0 +1,20 @@
+.bf-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bf-space-3);
+  padding: var(--bf-space-2) var(--bf-space-1) 0;
+  color: var(--bf-text-secondary);
+  font-size: var(--bf-text-label-size);
+}
+
+.bf-num {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.bf-page {
+  min-width: 48px;
+  text-align: center;
+  display: inline-block;
+}

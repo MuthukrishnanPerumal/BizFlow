@@ -1,0 +1,36 @@
+<app-page-header
+  title="Permissions"
+  subtitle="The catalog of actions. Assign them to roles; they are not granted to people directly."
+/>
+
+<mat-form-field appearance="outline" class="search">
+  <mat-label>Filter permissions</mat-label>
+  <input matInput [formControl]="query" placeholder="View, purchase, user…" />
+</mat-form-field>
+
+@if (loading()) {
+  <app-skeleton-loader [rows]="4" />
+} @else if (visible().length === 0) {
+  <app-empty-state title="No permissions" message="Nothing matches that filter. Clear it to see the full catalog.">
+    <button type="button" mat-stroked-button (click)="query.setValue('')">Clear filter</button>
+  </app-empty-state>
+} @else {
+  <div class="modules">
+    @for (group of visible(); track group.module) {
+      <section>
+        <h2>{{ group.label }}</h2>
+        <ul>
+          @for (permission of group.permissions; track permission.id) {
+            <li>
+              <strong>{{ permission.name }}</strong>
+              <code>{{ permission.code }}</code>
+              @if (permission.description) {
+                <p>{{ permission.description }}</p>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  </div>
+}

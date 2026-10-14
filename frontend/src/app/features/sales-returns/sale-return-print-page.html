@@ -1,0 +1,70 @@
+@if (failed()) {
+  <app-error-state title="Could not load sales return" [message]="errorMessage()" actionLabel="Back" />
+} @else if (record(); as row) {
+  <div class="no-print toolbar">
+    <a mat-button [routerLink]="['/sales-returns', row.id]">Back</a>
+    <button mat-flat-button color="primary" type="button" (click)="print()">Print</button>
+  </div>
+  <article class="print-sheet">
+    <header class="print-head">
+      <div>
+        <app-letterhead />
+        <h1>Sales return</h1>
+        <p>{{ row.returnNumber }}</p>
+      </div>
+      <div>
+        <p>Date {{ date(row.returnDate) }}</p>
+        <p>Invoice {{ row.invoiceNumber }}</p>
+        <p>Status {{ row.status }}</p>
+        <p>Refund {{ row.refundMethod }}</p>
+      </div>
+    </header>
+    <section class="print-meta">
+      <div>
+        <strong>{{ row.customer.customerName }}</strong>
+        <p>{{ row.customer.customerCode }}</p>
+        <p>{{ row.customer.address }}</p>
+        <p>{{ row.customer.phone }}</p>
+        <p>{{ row.customer.taxNumber }}</p>
+      </div>
+      <div>
+        <p>Reason {{ row.reason }}</p>
+        <p>Prepared by {{ row.createdBy }}</p>
+      </div>
+    </section>
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Price</th>
+          <th>Discount</th>
+          <th>Tax</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of row.items; track item.id) {
+          <tr>
+            <td>{{ item.productName }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ money(item.sellingPrice) }}</td>
+            <td>{{ money(item.discount) }}</td>
+            <td>{{ money(item.taxAmount) }}</td>
+            <td>{{ money(item.total) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <section class="print-meta">
+      <div><p>{{ row.notes }}</p></div>
+      <dl class="totals">
+        <div><dt>Merchandise</dt><dd>{{ money(row.merchandiseTotal) }}</dd></div>
+        <div><dt>Discount reversal</dt><dd>{{ money(row.discountReversal) }}</dd></div>
+        <div><dt>Tax reversal</dt><dd>{{ money(row.taxReversal) }}</dd></div>
+        <div class="grand"><dt>Total</dt><dd>{{ money(row.grandTotal) }}</dd></div>
+      </dl>
+    </section>
+    <p class="footer-note">Sales return document. Navigation and actions are omitted from the print.</p>
+  </article>
+}

@@ -1,0 +1,44 @@
+<div class="bf-command">
+  <label class="bf-command-field">
+    <mat-icon aria-hidden="true">search</mat-icon>
+    <input
+      [formControl]="query"
+      placeholder="Search pages, products, customers, invoices"
+      aria-label="Search"
+      autocomplete="off"
+      autofocus
+    />
+    <kbd>Esc</kbd>
+  </label>
+  <div class="bf-command-body" role="listbox" aria-label="Search results">
+    @if (results().pending) {
+      <p class="bf-command-note">Searching records…</p>
+    }
+    @for (group of groups(); track group.label) {
+      <section>
+        <h2>{{ group.label }}</h2>
+        @for (hit of group.hits; track hit.id) {
+          <button
+            type="button"
+            role="option"
+            [attr.aria-selected]="indexOf(hit) === activeIndex()"
+            [class.is-active]="indexOf(hit) === activeIndex()"
+            (mouseenter)="activeIndex.set(indexOf(hit))"
+            (click)="go(hit)"
+          >
+            <span>{{ hit.title }}</span>
+            @if (hit.detail) {
+              <small>{{ hit.detail }}</small>
+            }
+          </button>
+        }
+      </section>
+    }
+    @if (!results().pending && results().hits.length === 0) {
+      <p class="bf-command-note">No matches.</p>
+    }
+    @if (results().failed) {
+      <p class="bf-command-note">Some records could not be loaded.</p>
+    }
+  </div>
+</div>

@@ -1,0 +1,45 @@
+@use '@angular/material' as mat;
+
+html {
+  height: 100%;
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$cyan-palette,
+        tertiary: mat.$azure-palette,
+        theme-type: light,
+      ),
+      typography: (
+        plain-family: ('IBM Plex Sans', 'Segoe UI', sans-serif),
+        brand-family: ('IBM Plex Sans', 'Segoe UI', sans-serif),
+        bold-weight: 600,
+        medium-weight: 500,
+        regular-weight: 400,
+      ),
+      density: -2,
+    )
+  );
+
+  // Material reads these at runtime, so a later data-theme switch restyles
+  // controls without a second component pass.
+  --mat-sys-primary: var(--bf-accent);
+  --mat-sys-on-primary: var(--bf-on-accent);
+  --mat-sys-primary-container: var(--bf-accent-soft);
+  --mat-sys-on-primary-container: var(--bf-accent-hover);
+  --mat-sys-surface: var(--bf-surface);
+  --mat-sys-surface-container: var(--bf-surface-muted);
+  --mat-sys-surface-container-low: var(--bf-bg);
+  --mat-sys-surface-container-high: var(--bf-surface-elevated);
+  --mat-sys-background: var(--bf-bg);
+  --mat-sys-outline: var(--bf-border-strong);
+  --mat-sys-outline-variant: var(--bf-border);
+  --mat-sys-error: var(--bf-danger);
+  --mat-sys-on-error: var(--bf-on-danger);
+  --mat-sys-error-container: var(--bf-danger-soft);
+  --mat-sys-on-surface: var(--bf-text);
+  --mat-sys-on-surface-variant: var(--bf-text-secondary);
+  --mat-sys-corner-extra-small: var(--bf-radius-sm);
+  --mat-sys-corner-small: var(--bf-radius);
+  --mat-sys-corner-medium: var(--bf-radius);
+  --mat-sys-corner-large: var(--bf-radius-md);
+}

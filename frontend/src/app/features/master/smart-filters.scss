@@ -1,0 +1,70 @@
+:host {
+  display: block;
+  margin-bottom: var(--bf-space-3);
+}
+
+.smart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bf-space-2);
+}
+
+.primary,
+.advanced {
+  min-width: 0;
+}
+
+.more,
+.clear {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: var(--bf-text-secondary);
+  font: inherit;
+  font-size: var(--bf-text-secondary-size);
+  font-weight: var(--bf-weight-medium);
+  cursor: pointer;
+}
+
+.more {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: var(--bf-control-height);
+  padding: 0;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bf-space-2);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 8px 0 10px;
+  border: 1px solid var(--bf-border-strong);
+  border-radius: 99px;
+  background: var(--bf-surface);
+  color: var(--bf-text);
+  font: inherit;
+  font-size: var(--bf-text-helper-size);
+  cursor: pointer;
+}
+
+.chip mat-icon {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  color: var(--bf-text-muted);
+}
+
+.clear {
+  min-height: 28px;
+  padding: 0 4px;
+  text-decoration: underline;
+}

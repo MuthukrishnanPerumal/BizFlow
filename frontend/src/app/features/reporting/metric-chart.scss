@@ -1,0 +1,104 @@
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 180px;
+  padding: 14px 14px 12px;
+  background: var(--bf-surface);
+  border: 1px solid var(--bf-border);
+  border-radius: var(--bf-radius);
+}
+
+header h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+header p,
+.quiet {
+  margin: 2px 0 0;
+  color: var(--bf-text-muted);
+  font-size: 12px;
+}
+
+svg {
+  width: 100%;
+  height: 180px;
+}
+
+.axis {
+  stroke: var(--bf-border-strong);
+  stroke-width: 1;
+}
+
+text {
+  fill: var(--bf-text-muted);
+  font-size: 11px;
+  text-anchor: middle;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--bf-text-secondary);
+  font-size: 12px;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 99px;
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(88px, 1.1fr) minmax(0, 2fr) auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.bar-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--bf-text);
+}
+
+.bar-track {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--bf-surface-muted);
+  overflow: hidden;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--bf-accent);
+}
+
+.bar-fill.is-negative {
+  background: var(--bf-danger);
+}
+
+.bar-value {
+  color: var(--bf-text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

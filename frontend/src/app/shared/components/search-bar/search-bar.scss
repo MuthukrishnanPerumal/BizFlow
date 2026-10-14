@@ -1,0 +1,39 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.bf-search {
+  width: 100%;
+}
+
+:host ::ng-deep .bf-search .mat-mdc-text-field-wrapper {
+  background: var(--bf-surface);
+  border-radius: var(--bf-radius);
+}
+
+:host ::ng-deep .bf-search .mat-mdc-form-field-icon-prefix {
+  color: var(--bf-text-muted);
+  padding-right: var(--bf-space-1);
+}
+
+.bf-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: var(--bf-space-1);
+  padding: 0;
+  border: 0;
+  border-radius: var(--bf-radius-sm);
+  background: transparent;
+  color: var(--bf-text-muted);
+  cursor: pointer;
+}
+
+.bf-search-clear:hover,
+.bf-search-clear:focus-visible {
+  background: var(--bf-surface-muted);
+  color: var(--bf-text);
+}

@@ -1,0 +1,77 @@
+<div class="bf-brand">
+  <span class="bf-mark" aria-hidden="true">AB</span>
+  @if (layout.showLabels()) {
+    <span class="bf-brand-text">
+      <strong>{{ brand() }}</strong>
+      <small>Operations</small>
+    </span>
+  }
+</div>
+<nav class="bf-nav" aria-label="Primary">
+  @for (item of navigation(); track item.label) {
+    @if (item.children) {
+      <div class="bf-group">
+        <button
+          type="button"
+          class="bf-link"
+          [class.is-current]="containsCurrent(item)"
+          [class.is-open]="layout.showLabels() ? isOpen(item) : flyout()?.label === item.label"
+          [attr.aria-expanded]="layout.showLabels() ? isOpen(item) : flyout()?.label === item.label"
+          [attr.aria-label]="item.label"
+          [matTooltip]="item.label"
+          [matTooltipDisabled]="layout.showLabels() || flyout()?.label === item.label"
+          matTooltipPosition="right"
+          (click)="toggle(item, $event)"
+        >
+          <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
+          @if (layout.showLabels()) {
+            <span>{{ item.label }}</span>
+            <mat-icon class="bf-caret" aria-hidden="true">{{ isOpen(item) ? 'expand_less' : 'expand_more' }}</mat-icon>
+          }
+        </button>
+        @if (layout.showLabels() && isOpen(item)) {
+          <div class="bf-children">
+            @for (child of item.children; track child.route) {
+              <a
+                class="bf-link child"
+                [routerLink]="child.route"
+                [class.is-current]="isActive(child.route ?? '')"
+                [attr.aria-current]="isActive(child.route ?? '') ? 'page' : null"
+              >
+                <span>{{ child.label }}</span>
+              </a>
+            }
+          </div>
+        }
+      </div>
+    } @else {
+      <a
+        class="bf-link"
+        [routerLink]="item.route"
+        [class.is-current]="isActive(item.route ?? '')"
+        [attr.aria-current]="isActive(item.route ?? '') ? 'page' : null"
+        [attr.aria-label]="item.label"
+        [matTooltip]="item.label"
+        [matTooltipDisabled]="layout.showLabels()"
+        matTooltipPosition="right"
+      >
+        <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
+        @if (layout.showLabels()) {
+          <span>{{ item.label }}</span>
+        }
+      </a>
+    }
+  }
+</nav>
+<ng-template #flyoutMenu>
+  @if (flyout(); as group) {
+    <div class="bf-flyout" role="menu" [attr.aria-label]="group.label">
+      <p>{{ group.label }}</p>
+      @for (child of group.children ?? []; track child.route) {
+        <a role="menuitem" [routerLink]="child.route" [class.is-current]="isActive(child.route ?? '')" (click)="closeFlyout()">
+          {{ child.label }}
+        </a>
+      }
+    </div>
+  }
+</ng-template>

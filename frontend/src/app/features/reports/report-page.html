@@ -1,0 +1,118 @@
+<app-page-header [title]="title()" [subtitle]="subtitle()">
+  <a mat-button routerLink="/reports">All reports</a>
+  @if (kind() === 'inventory') {
+    <a mat-stroked-button class="no-print" [routerLink]="['/reports/inventory/print']" [queryParams]="printQuery()">Print</a>
+  }
+  <button *appHasPermission="'REPORT_EXPORT'" type="button" mat-flat-button color="primary" [matMenuTriggerFor]="exportMenu" [disabled]="exporting()">
+    {{ exporting() ? 'Exporting…' : 'Export' }}
+  </button>
+  <mat-menu #exportMenu="matMenu">
+    <button mat-menu-item type="button" (click)="exportReport('csv')">CSV</button>
+    <button mat-menu-item type="button" (click)="exportReport('xlsx')">Excel</button>
+    <button mat-menu-item type="button" (click)="exportReport('pdf')">PDF</button>
+  </mat-menu>
+</app-page-header>
+
+<app-period-filter
+  [preset]="preset()"
+  [from]="from()"
+  [to]="to()"
+  (presetChange)="onPreset($event)"
+  (fromChange)="onFrom($event)"
+  (toChange)="onTo($event)"
+  (reset)="reset()"
+/>
+
+<app-search-bar [placeholder]="searchPlaceholder()" [token]="searchToken()" (queryChange)="onSearch($event)" />
+
+@if (showsScope()) {
+  <details class="more-filters">
+    <summary>More filters</summary>
+    <div class="filters">
+      <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+        <mat-label>Documents</mat-label>
+        <mat-select [value]="scope()" (selectionChange)="onScope($event.value)">
+          <mat-option value="POSTED">Posted</mat-option>
+          <mat-option value="ALL">All documents</mat-option>
+          <mat-option value="DRAFT">Draft</mat-option>
+          <mat-option value="CONFIRMED">Confirmed</mat-option>
+          <mat-option value="COMPLETED">Completed</mat-option>
+          <mat-option value="PARTIALLY_RETURNED">Partially returned</mat-option>
+          <mat-option value="RETURNED">Returned</mat-option>
+          <mat-option value="CANCELLED">Cancelled</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </details>
+}
+
+@if (highlights(); as cards) {
+  @if (cards.length > 0) {
+    <section class="formula" aria-label="Report summary">
+      @for (card of cards; track card.label) {
+        <article [class.is-emphasis]="card.emphasis">
+          <span>{{ card.label }}</span>
+          <strong>{{ card.value }}</strong>
+        </article>
+      }
+    </section>
+  }
+}
+
+@if (preset() === 'CUSTOM' && (!from() || !to())) {
+  <app-empty-state title="Choose a custom range" message="Select a start date and an end date." />
+} @else if (loading()) {
+  <app-skeleton-loader layout="table" [rows]="8" />
+} @else if (failed()) {
+  <app-error-state [title]="title() + ' is unavailable'" [message]="errorMessage()" (retry)="load()" />
+} @else if (rows().length === 0) {
+  <app-empty-state title="Nothing in this period" message="No rows match this range or filter. Widen the dates or clear the search to see activity." />
+} @else {
+  <div class="bf-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          @for (column of columns(); track column.id) {
+            <th [class.end]="column.align === 'end'">
+              <button type="button" class="sort" (click)="toggleSort(column.id)">
+                {{ column.header }}
+                <mat-icon>{{ sortMark(column.id) }}</mat-icon>
+              </button>
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track $index) {
+          <tr>
+            @for (column of columns(); track column.id) {
+              <td [class.end]="column.align === 'end'">
+                @if (column.kind === 'status') {
+                  <app-status-badge [status]="cell(row, column)" />
+                } @else {
+                  {{ cell(row, column) }}
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+      @if (totals(); as footer) {
+        <tfoot>
+          <tr class="totals">
+            @for (column of columns(); track column.id; let first = $first) {
+              <td [class.end]="column.align === 'end'">
+                @if (first) {
+                  Total
+                } @else if (column.kind === 'money' || column.kind === 'qty') {
+                  {{ cell(footer, column) }}
+                }
+              </td>
+            }
+          </tr>
+        </tfoot>
+      }
+    </table>
+  </div>
+  <app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />
+}

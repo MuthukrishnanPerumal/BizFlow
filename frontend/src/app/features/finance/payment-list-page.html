@@ -1,0 +1,148 @@
+<app-page-header [title]="title()" [subtitle]="party() === 'customer' ? 'Money received from customers.' : 'Money paid to suppliers.'">
+  <a *appHasPermission="'PAYMENT_CREATE'" mat-flat-button color="primary" routerLink="new">New payment</a>
+</app-page-header>
+
+<app-finance-nav />
+
+<app-search-bar placeholder="Search number, party, or reference" (queryChange)="onSearch($event)" />
+
+<app-filter-panel title="Filters">
+  <div class="filters">
+    <app-iso-date-field label="From" [formControl]="dateFrom" (committed)="applyFilters()" />
+    <app-iso-date-field label="To" [formControl]="dateTo" (committed)="applyFilters()" />
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Status</mat-label>
+      <mat-select [value]="status()" (selectionChange)="onStatus($event.value)">
+        <mat-option value="">All statuses</mat-option>
+        <mat-option value="POSTED">Posted</mat-option>
+        <mat-option value="CANCELLED">Cancelled</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <details class="more-filters">
+      <summary>More filters</summary>
+      <div class="filters">
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Method</mat-label>
+      <mat-select [value]="method()" (selectionChange)="onMethod($event.value)">
+        <mat-option value="">All methods</mat-option>
+        @for (item of methods; track item) {
+          <mat-option [value]="item">{{ item.replace('_', ' ') }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Minimum</mat-label>
+      <input matInput [formControl]="minAmount" (keyup.enter)="applyFilters()" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Maximum</mat-label>
+      <input matInput [formControl]="maxAmount" (keyup.enter)="applyFilters()" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>History</mat-label>
+      <mat-select [value]="scope()" (selectionChange)="onScope($event.value)">
+        <mat-option value="STANDALONE">Payments only</mat-option>
+        <mat-option value="ALL">Include invoice settlements</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <div>
+      <mat-form-field appearance="outline" floatLabel="always">
+        <mat-label>{{ partyLabel() }}</mat-label>
+        <input matInput [formControl]="partySearch" placeholder="Search" />
+      </mat-form-field>
+      @if (partyHits().length > 0) {
+        <div class="hits">
+          @for (party of partyHits(); track party.id) {
+            <button type="button" (click)="chooseParty(party)">{{ partyName(party) }}</button>
+          }
+        </div>
+      }
+      @if (partyId()) {
+        <button type="button" mat-button (click)="clearParty()">Clear {{ partyLabel().toLowerCase() }}</button>
+      }
+    </div>
+      </div>
+    </details>
+  </div>
+</app-filter-panel>
+
+@if (report(); as board) {
+  <section class="fin-kpis">
+    <article class="fin-kpi is-ok">
+      <span>{{ party() === 'customer' ? 'Received' : 'Paid' }}</span>
+      <strong>{{ money(board.postedTotal) }}</strong>
+      <small>{{ board.postedCount }} payments in this view</small>
+    </article>
+    <article class="fin-kpi">
+      <span>Not yet applied</span>
+      <strong [class]="balanceClass(board.advanceTotal)">{{ money(board.advanceTotal) }}</strong>
+      <small>Still waiting to be matched to an invoice</small>
+    </article>
+    <article class="fin-kpi">
+      <span>Shown</span>
+      <strong>{{ board.totalElements }}</strong>
+      <small>Matching the current filters</small>
+    </article>
+    <article class="fin-kpi is-warning">
+      <span>Page</span>
+      <strong>{{ board.totalElements === 0 ? 0 : page() + 1 }}</strong>
+      <small>of {{ board.totalPages || 1 }}</small>
+    </article>
+  </section>
+}
+
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader layout="table" [rows]="6" />
+  } @else if (failed()) {
+    <app-error-state title="Could not load payments" [message]="errorMessage()" (retry)="load()" />
+  } @else if ((report()?.items?.length ?? 0) === 0) {
+    <app-empty-state
+      title="No payments"
+      message="Nothing matches this search or these filters. Clear them above, or record a payment."
+    >
+      <a *appHasPermission="'PAYMENT_CREATE'" mat-flat-button color="primary" routerLink="new">New payment</a>
+    </app-empty-state>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th><button type="button" class="sort" (click)="toggleSort('paymentNumber')">Number <mat-icon>{{ sortMark('paymentNumber') }}</mat-icon></button></th>
+          <th><button type="button" class="sort" (click)="toggleSort('paymentDate')">Date <mat-icon>{{ sortMark('paymentDate') }}</mat-icon></button></th>
+          <th>{{ partyLabel() }}</th>
+          <th>Method</th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('amount')">Amount <mat-icon>{{ sortMark('amount') }}</mat-icon></button></th>
+          <th class="end">Unapplied</th>
+          <th><button type="button" class="sort" (click)="toggleSort('status')">Status <mat-icon>{{ sortMark('status') }}</mat-icon></button></th>
+          <th class="end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of report()?.items ?? []; track row.id) {
+          <tr>
+            <td data-label="Number">
+              <a [routerLink]="[row.id]">{{ row.paymentNumber }}</a>
+              <button type="button" class="row-details" aria-expanded="false">
+                <span class="when-closed">Details</span>
+                <span class="when-open">Hide</span>
+              </button>
+            </td>
+            <td data-detail data-label="Date">{{ date(row.paymentDate) }}</td>
+            <td [attr.data-label]="partyLabel()">{{ row.partyName }}<br /><small>{{ row.partyCode }}</small></td>
+            <td data-detail data-label="Method">{{ row.paymentMethod.replaceAll('_', ' ') }}</td>
+            <td class="end num" data-label="Amount">{{ money(row.amount) }}</td>
+            <td data-detail class="end num" data-label="Unapplied" [class]="balanceClass(row.unallocatedAmount)">{{ money(row.unallocatedAmount) }}</td>
+            <td data-label="Status"><app-status-badge [status]="row.status" /></td>
+            <td class="end actions" data-label="Actions">
+              <div class="row-menu">
+                <a mat-button [routerLink]="[row.id]">Open</a>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+<app-pagination [page]="page()" [pageSize]="pageSize" [total]="report()?.totalElements ?? 0" (pageChange)="onPage($event)" />

@@ -1,0 +1,88 @@
+<app-page-header [title]="config.title" [subtitle]="config.subtitle">
+  <a *appHasPermission="config.createPermission" mat-flat-button color="primary" routerLink="new">
+    New {{ config.singular }}
+  </a>
+</app-page-header>
+
+<app-search-bar [placeholder]="'Search ' + config.title.toLowerCase()" [token]="searchToken()" (queryChange)="onSearch($event)" />
+
+<app-smart-filters [chips]="chips()" (remove)="removeChip($event)" (clear)="clearFilters()">
+  <div data-primary class="filters">
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Status</mat-label>
+      <mat-select [value]="status()" (selectionChange)="onStatus($event.value)">
+        <mat-option value="">All statuses</mat-option>
+        <mat-option value="ACTIVE">Active</mat-option>
+        <mat-option value="INACTIVE">Inactive</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+</app-smart-filters>
+
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader layout="table" [rows]="6" />
+  } @else if (failed()) {
+    <app-error-state title="Could not load records" [message]="errorMessage()" (retry)="load()" />
+  } @else if (rows().length === 0) {
+    <app-empty-state
+      [title]="filtered() ? 'No matching ' + config.title.toLowerCase() : config.emptyTitle"
+      [message]="filtered() ? 'Nothing matches the current search or status.' : config.emptyMessage"
+    >
+      @if (filtered()) {
+        <button type="button" mat-stroked-button (click)="clearFilters()">Clear filters</button>
+      } @else {
+        <a *appHasPermission="config.createPermission" mat-flat-button color="primary" routerLink="new">New {{ config.singular }}</a>
+      }
+    </app-empty-state>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          @if (config.hasCode) {
+            <th><button type="button" class="sort" (click)="toggleSort('code')">Code <mat-icon>{{ sortMark('code') }}</mat-icon></button></th>
+          }
+          <th><button type="button" class="sort" (click)="toggleSort('name')">Name <mat-icon>{{ sortMark('name') }}</mat-icon></button></th>
+          @if (config.hasShortName) {
+            <th><button type="button" class="sort" (click)="toggleSort('shortName')">Short name <mat-icon>{{ sortMark('shortName') }}</mat-icon></button></th>
+            <th>Decimals</th>
+          }
+          <th>Description</th>
+          <th><button type="button" class="sort" (click)="toggleSort('status')">Status <mat-icon>{{ sortMark('status') }}</mat-icon></button></th>
+          <th class="end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.id) {
+          <tr>
+            @if (config.hasCode) {
+              <td data-label="Code">{{ row.code }}</td>
+            }
+            <td data-label="Name">{{ row.name }}</td>
+            @if (config.hasShortName) {
+              <td data-label="Short name">{{ row.shortName }}</td>
+              <td data-label="Decimals">{{ row.decimalAllowed ? 'Allowed' : 'Whole numbers' }}</td>
+            }
+            <td class="clip" data-label="Description">{{ row.description || '—' }}</td>
+            <td data-label="Status"><app-status-badge [status]="row.status" /></td>
+            <td class="end actions" data-label="Actions">
+              <div class="row-menu">
+                <a mat-button [routerLink]="[row.id]">Edit</a>
+                @if (auth.hasPermission(config.deletePermission)) {
+                  <button type="button" mat-button [matMenuTriggerFor]="menu" [attr.aria-label]="'More actions for ' + row.name">More</button>
+                  <mat-menu #menu="matMenu">
+                    <button type="button" mat-menu-item (click)="remove(row)">Delete</button>
+                  </mat-menu>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+@if (!loading() && !failed() && total() > 0) {
+  <app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />
+}

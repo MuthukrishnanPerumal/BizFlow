@@ -1,0 +1,65 @@
+@if (failed()) {
+  <app-error-state title="Could not load purchase return" [message]="errorMessage()" actionLabel="Back" />
+} @else if (record(); as row) {
+  <div class="no-print toolbar">
+    <a mat-button [routerLink]="['/purchase-returns', row.id]">Back</a>
+    <button mat-flat-button color="primary" type="button" (click)="print()">Print</button>
+  </div>
+  <article class="print-sheet">
+    <header class="print-head">
+      <div>
+        <app-letterhead />
+        <h1>Purchase return</h1>
+        <p>{{ row.returnNumber }}</p>
+      </div>
+      <div>
+        <p>Date {{ date(row.returnDate) }}</p>
+        <p>Purchase {{ row.purchaseNumber }}</p>
+        <p>Invoice {{ row.invoiceNumber }}</p>
+        <p>Status {{ row.status }}</p>
+      </div>
+    </header>
+    <section class="print-meta">
+      <div>
+        <strong>{{ row.supplier.supplierName }}</strong>
+        <p>{{ row.supplier.supplierCode }}</p>
+        <p>{{ row.supplier.address }}</p>
+        <p>{{ row.supplier.phone }}</p>
+        <p>{{ row.supplier.taxNumber }}</p>
+      </div>
+      <div>
+        <p>Prepared by {{ row.createdBy }}</p>
+      </div>
+    </section>
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Free</th>
+          <th>Price</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of row.items; track item.id) {
+          <tr>
+            <td>{{ item.productName }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.freeQuantity }}</td>
+            <td>{{ money(item.purchasePrice) }}</td>
+            <td>{{ money(item.total) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <section class="print-meta">
+      <div><p>{{ row.notes }}</p></div>
+      <dl class="totals">
+        <div><dt>Merchandise</dt><dd>{{ money(row.merchandiseTotal) }}</dd></div>
+        <div class="grand"><dt>Total</dt><dd>{{ money(row.grandTotal) }}</dd></div>
+      </dl>
+    </section>
+    <p class="footer-note">Purchase return document. Navigation and actions are omitted from the print.</p>
+  </article>
+}

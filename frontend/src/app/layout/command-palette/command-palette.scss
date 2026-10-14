@@ -1,0 +1,86 @@
+:host {
+  display: block;
+}
+
+.bf-command-field {
+  display: flex;
+  align-items: center;
+  gap: var(--bf-space-2);
+  min-height: 48px;
+  padding: 0 var(--bf-space-4);
+  border-bottom: 1px solid var(--bf-border);
+  color: var(--bf-text-muted);
+}
+
+input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--bf-text);
+  font: inherit;
+  font-size: var(--bf-text-body-size);
+}
+
+input:focus-visible {
+  outline: none;
+}
+
+kbd {
+  border: 1px solid var(--bf-border);
+  border-radius: var(--bf-radius-sm);
+  padding: 1px 6px;
+  color: var(--bf-text-muted);
+  font-family: var(--bf-font);
+  font-size: var(--bf-text-label-size);
+}
+
+.bf-command-body {
+  max-height: min(420px, 60vh);
+  overflow: auto;
+  padding: var(--bf-space-2);
+}
+
+h2 {
+  margin: var(--bf-space-2) var(--bf-space-2) var(--bf-space-1);
+  color: var(--bf-text-muted);
+  font-size: var(--bf-text-label-size);
+  font-weight: var(--bf-weight-semibold);
+}
+
+button {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--bf-space-3);
+  width: 100%;
+  min-height: var(--bf-control-height);
+  padding: var(--bf-space-2);
+  border: 0;
+  border-radius: var(--bf-radius);
+  background: transparent;
+  color: var(--bf-text);
+  font: inherit;
+  font-size: var(--bf-text-secondary-size);
+  text-align: left;
+  cursor: pointer;
+}
+
+button small {
+  color: var(--bf-text-muted);
+  font-size: var(--bf-text-label-size);
+  white-space: nowrap;
+}
+
+button.is-active,
+button:hover {
+  background: var(--bf-accent-soft);
+}
+
+.bf-command-note {
+  margin: 0;
+  padding: var(--bf-space-4) var(--bf-space-2);
+  color: var(--bf-text-secondary);
+  font-size: var(--bf-text-secondary-size);
+}

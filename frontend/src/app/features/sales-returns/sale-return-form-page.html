@@ -1,0 +1,133 @@
+<app-page-header title="Sales return" subtitle="Start from the original invoice, then return only what is still eligible.">
+  <a mat-button routerLink="/sales-returns">Back</a>
+</app-page-header>
+
+@if (errorMessage()) {
+  <p class="banner" role="alert">{{ errorMessage() }}</p>
+}
+
+<div class="workspace">
+  <div class="bill-main">
+    <section class="panel">
+      <h2>1. Original transaction</h2>
+      <div class="scan">
+        <mat-form-field appearance="outline">
+          <mat-label>Invoice number</mat-label>
+          <input #invoiceInput matInput [formControl]="invoiceSearch" (keyup.enter)="findInvoice()" placeholder="Type the invoice number" autocomplete="off" />
+        </mat-form-field>
+        <div class="actions">
+          <button type="button" mat-stroked-button (click)="findInvoice()">Find invoice</button>
+        </div>
+      </div>
+      @if (sale(); as bill) {
+        <div class="original">
+          <div><span>Invoice</span><strong>{{ bill.invoiceNumber }}</strong></div>
+          <div><span>Customer</span><strong>{{ bill.customer.customerName }}</strong></div>
+          <div><span>Invoice total</span><strong>{{ money(bill.grandTotal) }}</strong></div>
+          <div><span>Balance</span><strong>{{ money(bill.balanceAmount) }}</strong></div>
+        </div>
+        @if (!bill.returnable) {
+          <p class="field-error">This invoice cannot accept a return.</p>
+        }
+      }
+    </section>
+
+    @if (sale(); as bill) {
+      <section class="panel">
+        <h2>2. Eligible items</h2>
+        @if (lines().length === 0) {
+          <p class="hint">Every line on this invoice has already been returned.</p>
+        } @else {
+          <p class="hint">Sold is the original quantity. Returned is already credited. Enter a return quantity up to the eligible amount.</p>
+          <div class="cart">
+            <div class="cart-head">
+              <span>Product</span>
+              <span>Sold</span>
+              <span>Returned</span>
+              <span>Eligible</span>
+              <span>Return qty</span>
+              <span></span>
+              <span></span>
+            </div>
+            @for (line of lines(); track line.saleItemId; let i = $index) {
+              <div class="cart-row">
+                <div>
+                  <strong>{{ line.productName }}</strong>
+                  @if (line.serialTracking) {
+                    <mat-form-field appearance="outline">
+                      <mat-label>Serials being returned</mat-label>
+                      <input matInput [value]="line.serials" (input)="setSerials(i, $any($event.target).value)" />
+                    </mat-form-field>
+                  }
+                  @if (quantityWarning(line); as warning) {
+                    <p class="field-error">{{ warning }}</p>
+                  }
+                </div>
+                <div class="line-total">{{ line.sold }}</div>
+                <div class="line-total">{{ line.returned }}</div>
+                <div class="line-total">{{ line.remaining }}</div>
+                <mat-form-field appearance="outline">
+                  <mat-label>Return qty</mat-label>
+                  <input matInput [value]="line.quantity" (input)="setQuantity(i, $any($event.target).value)" inputmode="decimal" />
+                </mat-form-field>
+                <span></span>
+                <span></span>
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      <section class="panel">
+        <h2>3. Reason and refund</h2>
+        <div class="grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Return date</mat-label>
+            <input matInput type="date" [formControl]="returnDate" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Refund</mat-label>
+            <mat-select [formControl]="refundMethod">
+              <mat-option value="CREDIT">Credit the customer balance</mat-option>
+              <mat-option value="CASH">Cash refund</mat-option>
+              <mat-option value="CARD">Card refund</mat-option>
+              <mat-option value="UPI">UPI refund</mat-option>
+              <mat-option value="BANK_TRANSFER">Bank transfer</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Reason</mat-label>
+            <input matInput [formControl]="reason" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Notes</mat-label>
+            <textarea matInput rows="2" [formControl]="notes"></textarea>
+          </mat-form-field>
+        </div>
+        <p class="hint">
+          @if (refundMethod.value === 'CREDIT') {
+            The return reduces what this customer owes. It does not pay out cash.
+          } @else {
+            The selected method records the refund. Stock comes back for the returned quantity.
+          }
+        </p>
+      </section>
+    }
+  </div>
+
+  @if (sale(); as bill) {
+    <aside class="summary">
+      <h2>Return</h2>
+      <dl class="grand">
+        <dt>Lines to return</dt>
+        <dd>{{ returningCount() }}</dd>
+      </dl>
+      <p class="hint">The server prices the return from the original invoice. You cannot return more than the eligible quantity.</p>
+      <div class="actions">
+        <button type="button" class="complete bf-busy" mat-flat-button color="primary" [disabled]="saving() || !bill.returnable" [attr.aria-busy]="saving() ? true : null" (click)="save()">
+          {{ saving() ? 'Saving…' : 'Complete return' }}
+        </button>
+      </div>
+    </aside>
+  }
+</div>

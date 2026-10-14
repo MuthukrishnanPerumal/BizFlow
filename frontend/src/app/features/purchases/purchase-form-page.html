@@ -1,0 +1,237 @@
+<app-page-header
+  [title]="purchaseId() ? 'Edit purchase' : 'New purchase'"
+  subtitle="Choose the supplier, add items, then pay and save. Totals here are a preview. The server recalculates before posting."
+>
+  <a mat-button routerLink="/purchases">Back to purchases</a>
+</app-page-header>
+
+@if (errorMessage()) {
+  <p class="banner" role="alert">{{ errorMessage() }}</p>
+}
+@if (loading()) {
+  <app-skeleton-loader [rows]="8" />
+}
+
+<form class="workspace" [formGroup]="form" (ngSubmit)="save(true)">
+  <div class="bill-main">
+    <section class="panel" aria-label="Supplier">
+      <h2>Supplier</h2>
+      @if (form.controls.supplierId.value && supplierHits().length === 0) {
+        <div class="customer-chip">
+          <div>
+            <strong>{{ supplierSearch.value }}</strong>
+            <span class="hint">This bill will post to the supplier account.</span>
+          </div>
+          <button type="button" mat-button (click)="clearSupplier()">Change</button>
+        </div>
+      }
+      <mat-form-field appearance="outline">
+        <mat-label>Supplier</mat-label>
+        <input id="purchase-supplier-search" matInput [formControl]="supplierSearch" placeholder="Name or code" autocomplete="off" (keydown.enter)="takeSupplier($event)" />
+      </mat-form-field>
+      @if (supplierHits().length > 0) {
+        <div class="hits">
+          @for (supplier of supplierHits(); track supplier.id) {
+            <button type="button" class="hit" (click)="chooseSupplier(supplier)">
+              <strong>{{ supplier.supplierName }}</strong>
+              <span class="meta">{{ supplier.supplierCode }}@if (supplier.phone) { · {{ supplier.phone }} }</span>
+            </button>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="panel" aria-label="Purchase details">
+      <h2>Purchase details</h2>
+      <div class="grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Supplier invoice</mat-label>
+          <input matInput formControlName="invoiceNumber" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Purchase date</mat-label>
+          <input matInput type="date" formControlName="purchaseDate" />
+        </mat-form-field>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Items">
+      <h2>Items</h2>
+      <div class="scan">
+        <mat-form-field appearance="outline">
+          <mat-label>Barcode</mat-label>
+          <input #barcodeInput matInput [formControl]="barcode" placeholder="Scan or type and press Enter" autocomplete="off" (keydown.enter)="scanBarcode($event)" />
+          <mat-icon matSuffix>qr_code_scanner</mat-icon>
+        </mat-form-field>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Search name, code, or barcode</mat-label>
+            <input matInput [formControl]="productSearch" placeholder="Start typing" autocomplete="off" (keydown.enter)="takeProduct($event)" />
+          </mat-form-field>
+          @if (quickHits().length > 0) {
+            <div class="hits">
+              @for (product of quickHits(); track product.id) {
+                <button type="button" class="hit" (click)="addProduct(product)">
+                  <strong>{{ product.name }}</strong>
+                  <span class="price">{{ money(product.purchasePrice) }}</span>
+                  <span class="meta">
+                    {{ product.productCode }}
+                    @if (product.barcode) { · {{ product.barcode }} }
+                    · {{ product.unit.shortName }}
+                    · Stock {{ hitStock()[product.id] || '…' }}
+                  </span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="cart with-free" formArrayName="items">
+        <div class="cart-head">
+          <span>Product</span>
+          <span>Qty</span>
+          <span>Free</span>
+          <span>Price</span>
+          <span>Discount</span>
+          <span>Tax</span>
+          <span>Total</span>
+          <span></span>
+        </div>
+        @for (line of lines.controls; track $index; let index = $index) {
+          <div class="cart-row" [formGroupName]="index">
+            <div>
+              <mat-form-field appearance="outline">
+                <mat-label>Product, code, or barcode</mat-label>
+                <input matInput formControlName="label" (input)="searchProducts(index, line.controls.label.value)" autocomplete="off" />
+              </mat-form-field>
+              @if (activeRow() === index && productHits().length > 0) {
+                <div class="hits">
+                  @for (product of productHits(); track product.id) {
+                    <button type="button" class="hit" (click)="chooseProduct(index, product)">
+                      <strong>{{ product.name }}</strong>
+                      <span class="price">{{ money(product.purchasePrice) }}</span>
+                      <span class="meta">{{ product.productCode }} · {{ product.unit.shortName }}</span>
+                    </button>
+                  }
+                </div>
+              }
+              @if (meta()[index]?.batchTracking) {
+                <mat-form-field appearance="outline">
+                  <mat-label>Batch</mat-label>
+                  <input matInput formControlName="batch" />
+                </mat-form-field>
+              }
+              @if (meta()[index]?.expiryTracking) {
+                <mat-form-field appearance="outline">
+                  <mat-label>Expiry</mat-label>
+                  <input matInput type="date" formControlName="expiryDate" />
+                </mat-form-field>
+              }
+              @if (meta()[index]?.serialTracking) {
+                <mat-form-field appearance="outline">
+                  <mat-label>Serial numbers</mat-label>
+                  <textarea matInput rows="2" formControlName="serials" placeholder="Comma or space separated"></textarea>
+                </mat-form-field>
+              }
+              @if (line.controls.productId.value != null && lineError(index); as message) {
+                <p class="field-error">{{ message }}</p>
+              }
+            </div>
+            <mat-form-field appearance="outline">
+              <mat-label>Qty</mat-label>
+              <input matInput formControlName="quantity" inputmode="decimal" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Free</mat-label>
+              <input matInput formControlName="freeQuantity" inputmode="decimal" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Price</mat-label>
+              <input matInput formControlName="purchasePrice" inputmode="decimal" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Discount</mat-label>
+              <input matInput formControlName="discount" inputmode="decimal" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Tax %</mat-label>
+              <input matInput formControlName="tax" inputmode="decimal" />
+            </mat-form-field>
+            <div class="line-total">{{ money(lineTotal(index)) }}</div>
+            <button mat-icon-button type="button" aria-label="Remove line" (click)="removeLine(index)" [disabled]="lines.length === 1">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        }
+      </div>
+      <div class="actions">
+        <button mat-stroked-button type="button" (click)="addLine()">Add line</button>
+      </div>
+      <p class="keys">Enter in the barcode field adds a product. F2 focuses the barcode. F9 posts the purchase.</p>
+    </section>
+  </div>
+
+  <aside class="summary" aria-label="Totals and payment">
+    <h2>Total</h2>
+    <dl class="grand">
+      <dt>Grand total</dt>
+      <dd>{{ money(preview().grandTotal) }}</dd>
+    </dl>
+    <dl class="totals">
+      <div><dt>Subtotal</dt><dd>{{ money(preview().subtotal) }}</dd></div>
+      <div><dt>Discount</dt><dd>{{ money(preview().totalDiscount) }}</dd></div>
+      <div><dt>Tax</dt><dd>{{ money(preview().tax) }}</dd></div>
+      <div><dt>Paid</dt><dd>{{ money(preview().paidAmount) }}</dd></div>
+      <div><dt>Balance</dt><dd>{{ money(preview().balanceAmount) }}</dd></div>
+    </dl>
+
+    <h2>Payment</h2>
+    <mat-form-field appearance="outline">
+      <mat-label>Payment type</mat-label>
+      <mat-select formControlName="paymentType">
+        <mat-option value="CASH">Cash</mat-option>
+        <mat-option value="CREDIT">Credit</mat-option>
+        <mat-option value="BANK">Bank</mat-option>
+        <mat-option value="UPI">UPI</mat-option>
+        <mat-option value="CHEQUE">Cheque</mat-option>
+        <mat-option value="CARD">Card</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Paid amount</mat-label>
+      <input matInput formControlName="paidAmount" inputmode="decimal" />
+    </mat-form-field>
+    <button mat-button type="button" (click)="payInFull()">Pay in full</button>
+
+    <details class="adjustments">
+      <summary>Adjustments and notes</summary>
+      <mat-form-field appearance="outline">
+        <mat-label>Bill discount</mat-label>
+        <input matInput formControlName="billDiscount" inputmode="decimal" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Additional charges</mat-label>
+        <input matInput formControlName="additionalCharges" inputmode="decimal" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Round off</mat-label>
+        <input matInput formControlName="roundOff" inputmode="decimal" />
+      </mat-form-field>
+      <button mat-button type="button" (click)="roundToRupee()">Round to rupee</button>
+      <mat-form-field appearance="outline">
+        <mat-label>Reference</mat-label>
+        <input matInput formControlName="referenceNumber" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Notes</mat-label>
+        <textarea matInput rows="2" formControlName="notes"></textarea>
+      </mat-form-field>
+    </details>
+
+    <div class="actions">
+      <button mat-stroked-button type="button" [disabled]="!canSave()" [attr.aria-busy]="saving() ? true : null" (click)="save(false)">Save draft</button>
+      <button class="complete bf-busy" mat-flat-button color="primary" type="submit" [disabled]="!canSave()" [attr.aria-busy]="saving() ? true : null">{{ saving() ? 'Saving…' : 'Post purchase' }}</button>
+    </div>
+  </aside>
+</form>

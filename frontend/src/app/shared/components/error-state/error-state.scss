@@ -1,0 +1,31 @@
+.bf-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--bf-space-2);
+  padding: var(--bf-space-8) var(--bf-space-4);
+  border: 1px solid color-mix(in srgb, var(--bf-danger) 28%, var(--bf-border));
+  background: var(--bf-danger-soft);
+  border-radius: var(--bf-radius);
+  color: var(--bf-text);
+}
+
+mat-icon {
+  color: var(--bf-danger);
+}
+
+h2 {
+  margin: 0;
+  font-size: var(--bf-text-card-size);
+  font-weight: var(--bf-weight-semibold);
+  line-height: var(--bf-leading-tight);
+}
+
+p {
+  margin: 0 0 var(--bf-space-1);
+  max-width: 460px;
+  color: var(--bf-text-secondary);
+  font-size: var(--bf-text-secondary-size);
+  line-height: var(--bf-leading-body);
+}

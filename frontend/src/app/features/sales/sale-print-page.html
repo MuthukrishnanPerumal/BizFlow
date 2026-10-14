@@ -1,0 +1,78 @@
+@if (failed()) {
+  <app-error-state title="Could not load invoice" [message]="errorMessage()" actionLabel="Back" />
+} @else if (sale(); as bill) {
+  <div class="no-print toolbar">
+    <a mat-button [routerLink]="['/sales', bill.id]">Back</a>
+    <button mat-flat-button color="primary" type="button" (click)="print()">Print</button>
+  </div>
+  <article class="print-sheet">
+    <header class="print-head">
+      <div>
+        <app-letterhead />
+        <h1>Tax invoice</h1>
+        <p>{{ bill.invoiceNumber }}</p>
+      </div>
+      <div>
+        <p>Date {{ date(bill.invoiceDate) }}</p>
+        <p>Payment {{ bill.paymentType }}</p>
+        <p>Status {{ bill.status }}</p>
+      </div>
+    </header>
+    <section class="print-meta">
+      <div>
+        <strong>{{ bill.customer.customerName }}</strong>
+        <p>{{ bill.customer.customerCode }}</p>
+        <p>{{ bill.customer.address }}</p>
+        <p>{{ bill.customer.city }} {{ bill.customer.state }}</p>
+        <p>{{ bill.customer.phone }}</p>
+        <p>{{ bill.customer.taxNumber }}</p>
+      </div>
+      <div>
+        <p>Reference {{ bill.referenceNumber || '—' }}</p>
+        <p>Prepared by {{ bill.createdBy }}</p>
+      </div>
+    </section>
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Batch</th>
+          <th>Qty</th>
+          <th>Price</th>
+          <th>Discount</th>
+          <th>Tax</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of bill.items; track item.id) {
+          <tr>
+            <td>{{ item.productName }}<br />{{ item.productCode }}</td>
+            <td>{{ item.batch || '—' }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ money(item.sellingPrice) }}</td>
+            <td>{{ money(item.discount) }}</td>
+            <td>{{ money(item.taxAmount) }}</td>
+            <td>{{ money(item.total) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <section class="print-meta">
+      <div>
+        <p>{{ bill.notes }}</p>
+      </div>
+      <dl class="totals">
+        <div><dt>Subtotal</dt><dd>{{ money(bill.subtotal) }}</dd></div>
+        <div><dt>Discount</dt><dd>{{ money(bill.totalDiscount) }}</dd></div>
+        <div><dt>Tax</dt><dd>{{ money(bill.tax) }}</dd></div>
+        <div><dt>Charges</dt><dd>{{ money(bill.additionalCharges) }}</dd></div>
+        <div><dt>Round off</dt><dd>{{ money(bill.roundOff) }}</dd></div>
+        <div class="grand"><dt>Total</dt><dd>{{ money(bill.grandTotal) }}</dd></div>
+        <div><dt>Paid</dt><dd>{{ money(bill.paidAmount) }}</dd></div>
+        <div><dt>Balance</dt><dd>{{ money(bill.balanceAmount) }}</dd></div>
+      </dl>
+    </section>
+    <p class="footer-note">Thank you for your business. This document is the customer invoice. Application navigation is omitted from the print.</p>
+  </article>
+}

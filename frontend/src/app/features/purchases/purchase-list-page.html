@@ -1,0 +1,112 @@
+<app-page-header title="Purchases" subtitle="Supplier invoices, stock receipts, and payments.">
+  <a *appHasPermission="'PURCHASE_CREATE'" mat-flat-button color="primary" routerLink="new">New purchase</a>
+</app-page-header>
+
+<app-search-bar placeholder="Search number, invoice, supplier, or reference" (queryChange)="onSearch($event)" />
+
+<app-filter-panel title="Filters">
+  <div class="filters">
+    <app-iso-date-field label="From" [formControl]="dateFrom" (committed)="applyFilters()" />
+    <app-iso-date-field label="To" [formControl]="dateTo" (committed)="applyFilters()" />
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Status</mat-label>
+      <mat-select [value]="status()" (selectionChange)="onStatus($event.value)">
+        <mat-option value="">All statuses</mat-option>
+        <mat-option value="DRAFT">Draft</mat-option>
+        <mat-option value="CONFIRMED">Confirmed</mat-option>
+        <mat-option value="COMPLETED">Completed</mat-option>
+        <mat-option value="PARTIALLY_RETURNED">Partially returned</mat-option>
+        <mat-option value="RETURNED">Returned</mat-option>
+        <mat-option value="CANCELLED">Cancelled</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <details class="more-filters" [attr.open]="invoice.value || supplierId() ? '' : null">
+      <summary>More filters</summary>
+      <div class="filters">
+        <mat-form-field appearance="outline" floatLabel="always">
+          <mat-label>Invoice number</mat-label>
+          <input matInput [formControl]="invoice" (keyup.enter)="applyFilters()" />
+        </mat-form-field>
+        <div>
+          <mat-form-field appearance="outline" floatLabel="always">
+            <mat-label>Supplier</mat-label>
+            <input matInput [formControl]="supplierSearch" placeholder="Search suppliers" />
+          </mat-form-field>
+          @if (supplierHits().length > 0) {
+            <div class="hits">
+              @for (supplier of supplierHits(); track supplier.id) {
+                <button type="button" (click)="chooseSupplier(supplier)">{{ supplier.supplierName }} · {{ supplier.supplierCode }}</button>
+              }
+            </div>
+          }
+          @if (supplierId()) {
+            <button type="button" mat-button (click)="clearSupplier()">Clear supplier</button>
+          }
+        </div>
+      </div>
+    </details>
+  </div>
+</app-filter-panel>
+
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader layout="table" [rows]="6" />
+  } @else if (failed()) {
+    <app-error-state title="Could not load purchases" [message]="errorMessage()" (retry)="load()" />
+  } @else if (rows().length === 0) {
+    <app-empty-state
+      title="No purchases"
+      message="No supplier bills match this search or these filters. Clear them above, or record a new purchase."
+    >
+      <a *appHasPermission="'PURCHASE_CREATE'" mat-flat-button color="primary" routerLink="new">New purchase</a>
+    </app-empty-state>
+  } @else {
+    <table aria-label="Purchases">
+      <thead>
+        <tr>
+          <th><button type="button" class="sort" (click)="toggleSort('invoiceNumber')">Invoice <mat-icon>{{ sortMark('invoiceNumber') }}</mat-icon></button></th>
+          <th><button type="button" class="sort" (click)="toggleSort('purchaseDate')">Date <mat-icon>{{ sortMark('purchaseDate') }}</mat-icon></button></th>
+          <th><button type="button" class="sort" (click)="toggleSort('supplier.supplierName')">Supplier <mat-icon>{{ sortMark('supplier.supplierName') }}</mat-icon></button></th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('grandTotal')">Total <mat-icon>{{ sortMark('grandTotal') }}</mat-icon></button></th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('paidAmount')">Paid <mat-icon>{{ sortMark('paidAmount') }}</mat-icon></button></th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('balanceAmount')">Balance <mat-icon>{{ sortMark('balanceAmount') }}</mat-icon></button></th>
+          <th>Payment</th>
+          <th><button type="button" class="sort" (click)="toggleSort('status')">Status <mat-icon>{{ sortMark('status') }}</mat-icon></button></th>
+          <th class="end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.id) {
+          <tr>
+            <td data-label="Invoice">
+              <a [routerLink]="['/purchases', row.id]">{{ row.invoiceNumber }}</a>
+              <div class="hint">{{ row.purchaseNumber }}</div>
+              <button type="button" class="row-details" aria-expanded="false">
+                <span class="when-closed">Details</span>
+                <span class="when-open">Hide</span>
+              </button>
+            </td>
+            <td data-detail data-label="Date">{{ date(row.purchaseDate) }}</td>
+            <td data-label="Supplier">{{ row.supplierName }}</td>
+            <td class="end num" data-label="Total">{{ money(row.grandTotal) }}</td>
+            <td data-detail class="end num" data-label="Paid">{{ money(row.paidAmount) }}</td>
+            <td data-detail class="end num" data-label="Balance">{{ money(row.balanceAmount) }}</td>
+            <td data-detail data-label="Payment"><app-status-badge [status]="payStatus(row.paidAmount, row.balanceAmount, row.grandTotal)" /></td>
+            <td data-label="Status"><app-status-badge [status]="row.status" /></td>
+            <td class="end actions" data-label="Actions">
+              <div class="row-menu">
+                <a mat-button [routerLink]="['/purchases', row.id]">Open</a>
+                <button type="button" mat-button [matMenuTriggerFor]="menu" [attr.aria-label]="'More actions for ' + row.invoiceNumber">More</button>
+                <mat-menu #menu="matMenu">
+                  <a mat-menu-item [routerLink]="['/purchases', row.id, 'print']">Print</a>
+                </mat-menu>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+<app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />

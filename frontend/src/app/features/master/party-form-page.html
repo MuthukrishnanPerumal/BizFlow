@@ -1,0 +1,187 @@
+<app-page-header
+  [title]="editing ? 'Edit ' + config.singular : 'New ' + config.singular"
+  [subtitle]="config.subtitle"
+>
+  <a mat-button [routerLink]="editing ? ['/', config.resource, recordId()] : ['/', config.resource]">
+    {{ editing ? 'Back to details' : 'Back to ' + config.title.toLowerCase() }}
+  </a>
+</app-page-header>
+
+@if (loading()) {
+  <app-skeleton-loader [rows]="8" />
+} @else {
+  <form class="stack" [formGroup]="form" (ngSubmit)="submit()">
+    <p class="hint">Fields marked with * are required. Country defaults to India, balances default to zero, and status defaults to active.</p>
+
+    <app-form-section title="Basic information" description="The code is unique among current records.">
+      <div class="grid">
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Code</mat-label>
+            <input matInput formControlName="code" autocomplete="off" />
+          </mat-form-field>
+          @if (invalid('code')) {
+            <p class="field-error">{{ message('code', 'Use 2 to 32 letters, numbers, underscores, or hyphens.') }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ config.nameLabel }}</mat-label>
+            <input matInput formControlName="name" />
+          </mat-form-field>
+          @if (invalid('name')) {
+            <p class="field-error">{{ message('name', 'Enter a name.') }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Company</mat-label>
+            <input matInput formControlName="companyName" />
+          </mat-form-field>
+        </div>
+      </div>
+    </app-form-section>
+
+    <app-form-section title="Contact" description="Phone and email are optional.">
+      <div class="grid">
+        @if (config.hasContact) {
+          <div>
+            <mat-form-field appearance="outline">
+              <mat-label>Contact person</mat-label>
+              <input matInput formControlName="contactPerson" />
+            </mat-form-field>
+          </div>
+        }
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Phone</mat-label>
+            <input matInput formControlName="phone" autocomplete="tel" />
+          </mat-form-field>
+          @if (invalid('phone')) {
+            <p class="field-error">{{ message('phone', 'Enter a valid phone number or leave it blank.') }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Alternate phone</mat-label>
+            <input matInput formControlName="alternatePhone" autocomplete="tel" />
+          </mat-form-field>
+          @if (invalid('alternatePhone')) {
+            <p class="field-error">{{ message('alternatePhone', 'Enter a valid phone number or leave it blank.') }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Email</mat-label>
+            <input matInput formControlName="email" autocomplete="email" />
+          </mat-form-field>
+          @if (invalid('email')) {
+            <p class="field-error">{{ message('email', 'Enter a valid email address or leave it blank.') }}</p>
+          }
+        </div>
+      </div>
+    </app-form-section>
+
+    <app-form-section title="Address">
+      <div class="grid">
+        <div class="span-2">
+          <mat-form-field appearance="outline">
+            <mat-label>Address</mat-label>
+            <textarea matInput rows="2" formControlName="address"></textarea>
+          </mat-form-field>
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Country</mat-label>
+            <input matInput formControlName="country" />
+          </mat-form-field>
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>State</mat-label>
+            <input matInput formControlName="state" />
+          </mat-form-field>
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>City</mat-label>
+            <input matInput formControlName="city" />
+          </mat-form-field>
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Pincode</mat-label>
+            <input matInput formControlName="pincode" />
+          </mat-form-field>
+          @if (invalid('pincode')) {
+            <p class="field-error">{{ message('pincode', 'Enter a valid pincode or leave it blank.') }}</p>
+          }
+        </div>
+      </div>
+    </app-form-section>
+
+    <app-form-section title="Financial information" description="A non-zero opening balance is posted to the account history.">
+      <div class="grid">
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Opening balance</mat-label>
+            <input matInput formControlName="openingBalance" inputmode="decimal" />
+          </mat-form-field>
+          @if (invalid('openingBalance')) {
+            <p class="field-error">{{ message('openingBalance', 'Enter an amount with up to 4 decimal places.') }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Credit limit</mat-label>
+            <input matInput formControlName="creditLimit" inputmode="decimal" />
+          </mat-form-field>
+          @if (invalid('creditLimit')) {
+            <p class="field-error">{{ message('creditLimit', 'Credit limit cannot be negative.') }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Payment terms</mat-label>
+            <input matInput formControlName="paymentTerms" placeholder="Net 30" />
+          </mat-form-field>
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Tax number</mat-label>
+            <input matInput formControlName="taxNumber" />
+          </mat-form-field>
+          @if (invalid('taxNumber')) {
+            <p class="field-error">{{ message('taxNumber', 'Enter a valid tax number.') }}</p>
+          }
+        </div>
+      </div>
+    </app-form-section>
+
+    <app-form-section title="Status" description="Inactive parties stay on historical documents and cannot be chosen on new ones.">
+      <mat-form-field appearance="outline">
+        <mat-label>Status</mat-label>
+        <mat-select formControlName="status">
+          <mat-option value="ACTIVE">Active</mat-option>
+          <mat-option value="INACTIVE">Inactive</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </app-form-section>
+
+    <div class="actions">
+      @if (canSave) {
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()" [attr.aria-busy]="saving() ? true : null">
+          @if (saving()) {
+            <mat-progress-spinner diameter="18" mode="indeterminate" />
+          }
+          {{ saving() ? 'Saving…' : (editing ? 'Save changes' : 'Create ' + config.singular) }}
+        </button>
+      }
+      <button type="button" mat-button (click)="resetForm()">Reset</button>
+      <a mat-button [routerLink]="editing ? ['/', config.resource, recordId()] : ['/', config.resource]">Cancel</a>
+      @if (editing && auth.hasPermission(config.deletePermission)) {
+        <button type="button" mat-button color="warn" (click)="remove()">Delete</button>
+      }
+    </div>
+  </form>
+}

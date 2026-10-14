@@ -1,0 +1,73 @@
+<app-page-header
+  [title]="editing ? 'Edit role' : 'New role'"
+  subtitle="Assign permissions by module. Codes stay stable so access checks remain explicit."
+>
+  <a mat-button routerLink="/roles">Back to roles</a>
+</app-page-header>
+
+@if (loading()) {
+  <app-skeleton-loader [rows]="6" />
+} @else {
+  <form class="stack" [formGroup]="form" (ngSubmit)="submit()">
+    <app-form-section title="Role" description="System roles keep their code. Custom roles can be removed when nobody is assigned.">
+      <div class="grid">
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Code</mat-label>
+            <input matInput formControlName="code" autocapitalize="characters" spellcheck="false" />
+          </mat-form-field>
+          @if (invalid('code')) {
+            <p class="field-error">{{ form.controls.code.hasError('server') ? form.controls.code.getError('server') : 'Use uppercase letters, numbers, and underscores.' }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Name</mat-label>
+            <input matInput formControlName="name" />
+          </mat-form-field>
+          @if (invalid('name')) {
+            <p class="field-error">Enter a role name.</p>
+          }
+        </div>
+      </div>
+      <mat-form-field appearance="outline">
+        <mat-label>Description</mat-label>
+        <textarea matInput rows="2" formControlName="description"></textarea>
+      </mat-form-field>
+    </app-form-section>
+
+    <app-form-section title="Permissions" description="Select the actions this role may perform.">
+      <div class="modules">
+        @for (group of groups(); track group.module) {
+          <section>
+            <header>
+              <h3>{{ group.label }}</h3>
+              <mat-checkbox [checked]="moduleSelected(group)" (change)="toggleModule(group, $event.checked)">All</mat-checkbox>
+            </header>
+            <div class="checks">
+              @for (permission of group.permissions; track permission.id) {
+                <mat-checkbox [checked]="selected().has(permission.id)" (change)="toggle(permission.id, $event.checked)">
+                  {{ permission.name }}
+                </mat-checkbox>
+              }
+            </div>
+          </section>
+        }
+      </div>
+    </app-form-section>
+
+    <div class="actions">
+      @if ((!editing && auth.hasPermission('ROLE_CREATE')) || (editing && auth.hasPermission('ROLE_UPDATE'))) {
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()" [attr.aria-busy]="saving() ? true : null">
+          @if (saving()) {
+            <mat-progress-spinner diameter="18" mode="indeterminate" />
+          }
+          {{ editing ? 'Save role' : 'Create role' }}
+        </button>
+      }
+      @if (editing && !systemRole()) {
+        <button *appHasPermission="'ROLE_DELETE'" type="button" mat-button color="warn" (click)="remove()">Delete role</button>
+      }
+    </div>
+  </form>
+}

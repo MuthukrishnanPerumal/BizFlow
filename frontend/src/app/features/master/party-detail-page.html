@@ -1,0 +1,232 @@
+@if (loading()) {
+  <app-skeleton-loader [rows]="6" />
+} @else if (failed()) {
+  <app-error-state title="Could not load this record" [message]="errorMessage()" (retry)="load()" />
+} @else if (party(); as row) {
+  <app-page-header [title]="nameOf(row)" [subtitle]="codeOf(row)">
+    <a mat-button [routerLink]="'/' + config.resource">Back</a>
+    @if (auth.hasPermission(config.updatePermission)) {
+      <a mat-flat-button color="primary" [routerLink]="['edit']">Edit</a>
+    }
+  </app-page-header>
+
+  <div class="master-tabs" role="tablist" [attr.aria-label]="config.singular">
+    <button type="button" role="tab" [attr.aria-selected]="tab() === 'overview'" (click)="openTab('overview')">Overview</button>
+    @if (canDocuments) {
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'documents'" (click)="openTab('documents')">{{ config.documentLabel }}</button>
+    }
+    @if (canPayments) {
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'payments'" (click)="openTab('payments')">Payments</button>
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'outstanding'" (click)="openTab('outstanding')">Outstanding</button>
+    }
+    <button type="button" role="tab" [attr.aria-selected]="tab() === 'activity'" (click)="openTab('activity')">Activity</button>
+  </div>
+
+  @if (tab() === 'overview') {
+    <div class="summary">
+      <article>
+        <span>Status</span>
+        <strong><app-status-badge [status]="row.status" /></strong>
+      </article>
+      <article>
+        <span>Opening balance</span>
+        <strong>{{ money(row.openingBalance) }}</strong>
+      </article>
+      <article>
+        <span>Credit limit</span>
+        <strong>{{ money(row.creditLimit) }}</strong>
+      </article>
+      <article>
+        <span>{{ config.balanceLabel }}</span>
+        <strong>{{ money(row.account?.balance) }}</strong>
+      </article>
+    </div>
+
+    <div class="stack">
+      <app-form-section title="Basic information">
+        <dl class="facts">
+          <div><dt>Code</dt><dd>{{ codeOf(row) }}</dd></div>
+          <div><dt>Name</dt><dd>{{ nameOf(row) }}</dd></div>
+          <div><dt>Company</dt><dd>{{ row.companyName || '—' }}</dd></div>
+        </dl>
+      </app-form-section>
+      <app-form-section title="Contact">
+        <dl class="facts">
+          @if (config.hasContact) {
+            <div><dt>Contact person</dt><dd>{{ row.contactPerson || '—' }}</dd></div>
+          }
+          <div><dt>Phone</dt><dd>{{ row.phone || '—' }}</dd></div>
+          <div><dt>Alternate phone</dt><dd>{{ row.alternatePhone || '—' }}</dd></div>
+          <div><dt>Email</dt><dd>{{ row.email || '—' }}</dd></div>
+        </dl>
+      </app-form-section>
+      <app-form-section title="Address">
+        <dl class="facts">
+          <div class="span-2"><dt>Street</dt><dd>{{ row.address || '—' }}</dd></div>
+          <div><dt>City</dt><dd>{{ row.city || '—' }}</dd></div>
+          <div><dt>State</dt><dd>{{ row.state || '—' }}</dd></div>
+          <div><dt>Country</dt><dd>{{ row.country || '—' }}</dd></div>
+          <div><dt>Pincode</dt><dd>{{ row.pincode || '—' }}</dd></div>
+        </dl>
+      </app-form-section>
+      <app-form-section title="Financial information">
+        <dl class="facts">
+          <div><dt>Payment terms</dt><dd>{{ row.paymentTerms || '—' }}</dd></div>
+          <div><dt>Tax number</dt><dd>{{ row.taxNumber || '—' }}</dd></div>
+          <div><dt>Opening balance</dt><dd>{{ money(row.openingBalance) }}</dd></div>
+          <div><dt>Credit limit</dt><dd>{{ money(row.creditLimit) }}</dd></div>
+        </dl>
+      </app-form-section>
+    </div>
+  } @else if (panelLoading()) {
+    <app-skeleton-loader [rows]="5" />
+  } @else if (panelFailed()) {
+    <app-error-state title="This section is unavailable" [message]="panelError()" (retry)="retryPanel()" />
+  } @else if (tab() === 'documents') {
+    @if (documents().length === 0) {
+      <app-empty-state
+        [title]="'No ' + config.documentLabel.toLowerCase() + ' yet'"
+        [message]="supplier ? 'Record a purchase to start this supplier history.' : 'Record a sale to start this customer history.'"
+      >
+        <a *appHasPermission="config.createDocumentPermission" mat-flat-button color="primary" [routerLink]="config.newDocumentRoute">
+          New {{ supplier ? 'purchase' : 'sale' }}
+        </a>
+      </app-empty-state>
+    } @else {
+      <div class="bf-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Number</th>
+              <th>Date</th>
+              <th class="end">Total</th>
+              <th class="end">Balance</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of documents(); track item.id) {
+              <tr>
+                <td data-label="Number"><a [routerLink]="[config.documentRoute, item.id]">{{ item.number }}</a></td>
+                <td data-label="Date">{{ date(item.date) }}</td>
+                <td class="end" data-label="Total">{{ money(item.total) }}</td>
+                <td class="end" data-label="Balance">{{ money(item.balance) }}</td>
+                <td data-label="Status"><app-status-badge [status]="item.status" /></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (documentTotal() > 0) {
+        <app-pagination [page]="documentPage()" [pageSize]="pageSize" [total]="documentTotal()" (pageChange)="onDocumentPage($event)" />
+      }
+    }
+  } @else if (tab() === 'payments') {
+    @if (payments().length === 0) {
+      <app-empty-state
+        title="No payments yet"
+        [message]="supplier ? 'Record a supplier payment when a bill is settled.' : 'Receive a payment when this customer pays an invoice.'"
+      >
+        <a *appHasPermission="'PAYMENT_CREATE'" mat-flat-button color="primary" [routerLink]="supplier ? '/payments/supplier/new' : '/payments/customer/new'">
+          {{ supplier ? 'Pay supplier' : 'Receive payment' }}
+        </a>
+      </app-empty-state>
+    } @else {
+      <div class="bf-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Number</th>
+              <th>Date</th>
+              <th>Method</th>
+              <th class="end">Amount</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of payments(); track item.id) {
+              <tr>
+                <td data-label="Number">
+                  <a [routerLink]="supplier ? ['/payments/supplier', item.id] : ['/payments/customer', item.id]">{{ item.paymentNumber }}</a>
+                </td>
+                <td data-label="Date">{{ date(item.paymentDate) }}</td>
+                <td data-label="Method"><app-status-badge [status]="item.paymentMethod" /></td>
+                <td class="end" data-label="Amount">{{ money(item.amount) }}</td>
+                <td data-label="Status"><app-status-badge [status]="item.status" /></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (paymentTotal() > 0) {
+        <app-pagination [page]="paymentPage()" [pageSize]="pageSize" [total]="paymentTotal()" (pageChange)="onPaymentPage($event)" />
+      }
+    }
+  } @else if (tab() === 'outstanding') {
+    @if (invoices().length === 0) {
+      <app-empty-state
+        title="Nothing outstanding"
+        [message]="supplier ? 'Bills with a remaining balance will appear here.' : 'Invoices with a remaining balance will appear here.'"
+      />
+    } @else {
+      <div class="bf-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Document</th>
+              <th>Date</th>
+              <th class="end">Total</th>
+              <th class="end">Open balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of invoices(); track item.invoiceId) {
+              <tr>
+                <td data-label="Document">
+                  <a [routerLink]="[config.documentRoute, item.invoiceId]">{{ item.documentNumber }}</a>
+                </td>
+                <td data-label="Date">{{ date(item.documentDate) }}</td>
+                <td class="end" data-label="Total">{{ money(item.grandTotal) }}</td>
+                <td class="end" data-label="Open balance">{{ money(item.openBalance) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  } @else if (tab() === 'activity') {
+    <app-form-section title="Account activity" [description]="config.historyHint">
+      @if (entries().length === 0) {
+        <app-empty-state title="No activity yet" [message]="config.historyHint" />
+      } @else {
+        <div class="bf-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Narration</th>
+                <th class="end">Debit</th>
+                <th class="end">Credit</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (entry of entries(); track entry.id) {
+                <tr>
+                  <td data-label="Date">{{ date(entry.entryDate) }}</td>
+                  <td data-label="Type">{{ entry.entryType }}</td>
+                  <td data-label="Narration">{{ entry.narration || '—' }}</td>
+                  <td class="end" data-label="Debit">{{ money(entry.debitAmount) }}</td>
+                  <td class="end" data-label="Credit">{{ money(entry.creditAmount) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (total() > 0) {
+          <app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />
+        }
+      }
+    </app-form-section>
+  }
+}

@@ -1,0 +1,78 @@
+@if (failed()) {
+  <app-error-state title="Could not load purchase" [message]="errorMessage()" actionLabel="Back" />
+} @else if (purchase(); as bill) {
+  <div class="no-print toolbar">
+    <a mat-button [routerLink]="['/purchases', bill.id]">Back</a>
+    <button mat-flat-button color="primary" type="button" (click)="print()">Print</button>
+  </div>
+  <article class="print-sheet">
+    <header class="print-head">
+      <div>
+        <app-letterhead />
+        <h1>Purchase invoice</h1>
+        <p>{{ bill.purchaseNumber }}</p>
+      </div>
+      <div>
+        <strong>{{ bill.invoiceNumber }}</strong>
+        <p>{{ date(bill.purchaseDate) }}</p>
+      </div>
+    </header>
+    <section class="print-meta">
+      <div>
+        <strong>{{ bill.supplier.supplierName }}</strong>
+        <p>{{ bill.supplier.supplierCode }}</p>
+        <p>{{ bill.supplier.address }}</p>
+        <p>{{ bill.supplier.city }} {{ bill.supplier.state }}</p>
+        <p>{{ bill.supplier.taxNumber }}</p>
+      </div>
+      <div>
+        <p>Payment {{ bill.paymentType }}</p>
+        <p>Reference {{ bill.referenceNumber || '—' }}</p>
+        <p>Status {{ bill.status }}</p>
+      </div>
+    </section>
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Batch</th>
+          <th>Qty</th>
+          <th>Free</th>
+          <th>Price</th>
+          <th>Discount</th>
+          <th>Tax</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of bill.items; track item.id) {
+          <tr>
+            <td>{{ item.productName }}<br />{{ item.productCode }}</td>
+            <td>{{ item.batch || '—' }}<br />{{ item.expiryDate || '' }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.freeQuantity }}</td>
+            <td>{{ money(item.purchasePrice) }}</td>
+            <td>{{ money(item.discount) }}</td>
+            <td>{{ money(item.taxAmount) }}</td>
+            <td>{{ money(item.total) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <section class="print-meta">
+      <div>
+        <p>{{ bill.notes }}</p>
+      </div>
+      <dl class="totals">
+        <div><dt>Subtotal</dt><dd>{{ money(bill.subtotal) }}</dd></div>
+        <div><dt>Discount</dt><dd>{{ money(bill.totalDiscount) }}</dd></div>
+        <div><dt>Tax</dt><dd>{{ money(bill.tax) }}</dd></div>
+        <div><dt>Charges</dt><dd>{{ money(bill.additionalCharges) }}</dd></div>
+        <div><dt>Round off</dt><dd>{{ money(bill.roundOff) }}</dd></div>
+        <div class="grand"><dt>Grand total</dt><dd>{{ money(bill.grandTotal) }}</dd></div>
+        <div><dt>Paid</dt><dd>{{ money(bill.paidAmount) }}</dd></div>
+        <div><dt>Balance</dt><dd>{{ money(bill.balanceAmount) }}</dd></div>
+      </dl>
+    </section>
+  </article>
+}

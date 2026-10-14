@@ -1,0 +1,173 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.login-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background:
+    radial-gradient(560px 320px at 88% -8%, rgba(168, 214, 214, 0.7), transparent 62%),
+    radial-gradient(420px 280px at 8% 100%, rgba(15, 111, 106, 0.2), transparent 68%),
+    #c5dcde;
+}
+
+.card {
+  width: min(100%, 420px);
+  background: #ffffff;
+  border: 1px solid rgba(15, 90, 86, 0.14);
+  border-radius: 12px;
+  padding: 32px 28px 24px;
+  box-shadow:
+    0 1px 1px rgba(22, 48, 52, 0.04),
+    0 2px 4px rgba(22, 48, 52, 0.04),
+    0 8px 16px rgba(22, 48, 52, 0.05),
+    0 18px 32px rgba(15, 111, 106, 0.08);
+}
+
+.card-kicker {
+  margin: 0;
+  color: #0f6f6a;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 8px 0 0;
+  font-size: 30px;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  color: #15202b;
+}
+
+.card-copy {
+  margin: 8px 0 22px;
+  color: #5c6b7a;
+  font-size: 14px;
+}
+
+.alert {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bf-danger-soft);
+  color: var(--bf-danger);
+  font-size: 13px;
+}
+
+.field + .field {
+  margin-top: 14px;
+}
+
+.field-label {
+  display: block;
+  margin: 0 0 6px;
+  color: #243140;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.req {
+  color: var(--bf-danger);
+}
+
+.field-error {
+  margin: 6px 0 0;
+  color: var(--bf-danger);
+  font-size: 12px;
+}
+
+.field ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+.field ::ng-deep .mat-mdc-text-field-wrapper {
+  padding: 0;
+  border-radius: 8px;
+}
+
+.field ::ng-deep .mat-mdc-form-field-flex {
+  background: #e7f4f3;
+  border-radius: 8px;
+}
+
+.field ::ng-deep .mdc-notched-outline__leading {
+  border-radius: 8px 0 0 8px !important;
+}
+
+.field ::ng-deep .mdc-notched-outline__trailing {
+  border-radius: 0 8px 8px 0 !important;
+}
+
+.field ::ng-deep .mat-mdc-form-field-infix {
+  min-height: 46px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.field ::ng-deep .mdc-notched-outline__leading,
+.field ::ng-deep .mdc-notched-outline__notch,
+.field ::ng-deep .mdc-notched-outline__trailing {
+  border-color: #cfd6df !important;
+}
+
+.field ::ng-deep .mat-mdc-form-field.mat-focused .mdc-notched-outline__leading,
+.field ::ng-deep .mat-mdc-form-field.mat-focused .mdc-notched-outline__notch,
+.field ::ng-deep .mat-mdc-form-field.mat-focused .mdc-notched-outline__trailing {
+  border-color: #0f6f6a !important;
+  border-width: 2px;
+}
+
+.field.invalid ::ng-deep .mdc-notched-outline__leading,
+.field.invalid ::ng-deep .mdc-notched-outline__notch,
+.field.invalid ::ng-deep .mdc-notched-outline__trailing {
+  border-color: var(--bf-danger) !important;
+}
+
+.field ::ng-deep .mat-mdc-form-field-icon-suffix .mat-mdc-icon-button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: #5c6b7a;
+}
+
+.submit {
+  width: 100%;
+  height: 46px;
+  margin-top: 22px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.submit mat-progress-spinner {
+  display: inline-block;
+  margin-right: 8px;
+  --mat-progress-spinner-active-indicator-color: #fff;
+}
+
+.card-note {
+  margin: 14px 0 0;
+  color: #8b98a5;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 24px 18px 20px;
+  }
+
+  h1 {
+    font-size: 26px;
+  }
+}

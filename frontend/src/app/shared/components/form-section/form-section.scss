@@ -1,0 +1,25 @@
+.bf-form-section {
+  border: 1px solid var(--bf-border);
+  background: var(--bf-surface);
+  border-radius: var(--bf-radius);
+  padding: var(--bf-space-3) var(--bf-space-4) var(--bf-space-4);
+}
+
+header h2 {
+  margin: 0;
+  font-size: var(--bf-text-card-size);
+  font-weight: var(--bf-weight-semibold);
+  line-height: var(--bf-leading-tight);
+  color: var(--bf-text);
+}
+
+header p {
+  margin: var(--bf-space-1) 0 0;
+  color: var(--bf-text-secondary);
+  font-size: var(--bf-text-helper-size);
+  line-height: var(--bf-leading-body);
+}
+
+.bf-form-section-body {
+  margin-top: var(--bf-space-3);
+}

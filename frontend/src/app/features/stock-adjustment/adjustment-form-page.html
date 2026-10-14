@@ -1,0 +1,110 @@
+<app-page-header title="New stock adjustment" subtitle="See the current stock, the change, and the result before you confirm.">
+  <a mat-stroked-button routerLink="/stock-adjustment">Cancel</a>
+</app-page-header>
+<app-inventory-nav />
+
+@if (errorMessage()) {
+  <p class="banner" role="alert">{{ errorMessage() }}</p>
+}
+
+<form class="inv-panel" [formGroup]="form" (ngSubmit)="save()">
+  <div class="form-grid">
+    <mat-form-field appearance="outline" class="span-2">
+      <mat-label>Product</mat-label>
+      <input matInput [formControl]="productSearch" placeholder="Search name, code, or barcode" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Location</mat-label>
+      <mat-select formControlName="locationId">
+        <mat-option value="">Default warehouse</mat-option>
+        @for (location of locations(); track location.id) {
+          <mat-option [value]="location.id">{{ location.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+  @if (hits().length > 0) {
+    <div class="hits">
+      @for (hit of hits(); track hit.id) {
+        <button type="button" (click)="choose(hit)">{{ hit.name }} · {{ hit.productCode }}</button>
+      }
+    </div>
+  }
+  @if (product(); as chosen) {
+    <p>{{ chosen.name }} · {{ chosen.productCode }}</p>
+    <section class="impact" aria-label="Adjustment impact">
+      <article>
+        <span>Current stock</span>
+        <strong>{{ onHand() == null ? '…' : qty(onHand()) }}</strong>
+      </article>
+      <article>
+        <span>Adjustment</span>
+        <strong>{{ form.controls.direction.value === 'DECREASE' ? '−' : '+' }}{{ form.controls.quantity.value || '0' }}</strong>
+      </article>
+      <article class="result">
+        <span>Resulting stock</span>
+        <strong>{{ resulting() == null ? '—' : qty(resulting()) }}</strong>
+      </article>
+    </section>
+    @if (belowZero()) {
+      <p class="banner">This would take stock below zero. Confirming still follows the stock rule.</p>
+    }
+  }
+
+  <div class="form-grid">
+    <mat-form-field appearance="outline">
+      <mat-label>Direction</mat-label>
+      <mat-select formControlName="direction">
+        <mat-option value="INCREASE">Increase</mat-option>
+        <mat-option value="DECREASE">Decrease</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Reason</mat-label>
+      <mat-select formControlName="reason">
+        @for (reason of reasons(); track reason) {
+          <mat-option [value]="reason">{{ reason.replaceAll('_', ' ') }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Quantity</mat-label>
+      <input matInput formControlName="quantity" inputmode="decimal" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Unit cost</mat-label>
+      <input matInput formControlName="unitCost" inputmode="decimal" placeholder="Current average if blank" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Date</mat-label>
+      <input matInput type="date" formControlName="adjustmentDate" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Reference number</mat-label>
+      <input matInput formControlName="referenceNumber" />
+    </mat-form-field>
+    @if (product()?.batchTracking || product()?.stockType === 'BATCH') {
+      <mat-form-field appearance="outline">
+        <mat-label>Batch</mat-label>
+        <input matInput formControlName="batch" />
+      </mat-form-field>
+    }
+    @if (product()?.expiryTracking) {
+      <mat-form-field appearance="outline">
+        <mat-label>Expiry</mat-label>
+        <input matInput type="date" formControlName="expiryDate" />
+      </mat-form-field>
+    }
+    <mat-form-field appearance="outline" class="span-3">
+      <mat-label>Notes</mat-label>
+      <textarea matInput rows="2" formControlName="notes"></textarea>
+    </mat-form-field>
+    @if (product()?.serialTracking) {
+      <mat-form-field appearance="outline" class="span-3">
+        <mat-label>Serials</mat-label>
+        <textarea matInput rows="3" formControlName="serials" placeholder="One serial per line"></textarea>
+      </mat-form-field>
+    }
+  </div>
+  <button class="bf-busy" mat-flat-button color="primary" type="submit" [disabled]="saving()" [attr.aria-busy]="saving() ? true : null">{{ saving() ? 'Saving…' : 'Confirm adjustment' }}</button>
+</form>

@@ -1,0 +1,133 @@
+<app-page-header [title]="stock()?.position?.productName || 'Product stock'" [subtitle]="stock()?.position?.productCode || 'Stock position, buckets, and recent ledger.'">
+  <a mat-stroked-button routerLink="/inventory/overview">Back to overview</a>
+</app-page-header>
+<app-inventory-nav />
+
+<app-filter-panel title="Filters">
+  <div class="filters">
+    <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+      <mat-label>Location</mat-label>
+      <mat-select [value]="locationId() ?? ''" (selectionChange)="onLocation($event.value)">
+        <mat-option value="">All locations</mat-option>
+        @for (location of locations(); track location.id) {
+          <mat-option [value]="location.id">{{ location.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+</app-filter-panel>
+
+@if (loading()) {
+  <app-skeleton-loader [rows]="6" />
+} @else if (failed()) {
+  <app-error-state title="Could not load product stock" [message]="errorMessage()" (retry)="load()" />
+} @else if (stock(); as stock) {
+  <section class="inv-kpis">
+    <article class="inv-kpi">
+      <span>Available</span>
+      <strong>{{ qty(stock.position.availableStock) }}</strong>
+      <small>{{ qty(stock.position.reservedStock) }} reserved</small>
+    </article>
+    <article class="inv-kpi">
+      <span>Stock value</span>
+      <strong>{{ money(stock.position.stockValue) }}</strong>
+      <small>Average {{ money(stock.position.averageCost) }}</small>
+    </article>
+    <article class="inv-kpi">
+      <span>Selling price</span>
+      <strong>{{ money(stock.position.sellingPrice) }}</strong>
+      <small>Reorder {{ qty(stock.position.reorderLevel) }}</small>
+    </article>
+    <article class="inv-kpi">
+      <span>Status</span>
+      <strong><app-status-badge [status]="stock.position.status" /></strong>
+      <small>Shortage {{ qty(stock.position.shortageQuantity) }}</small>
+    </article>
+  </section>
+
+  <section class="detail-grid">
+    <aside class="inv-panel detail-side">
+      <h2>Product</h2>
+      <div><span>Code</span><strong>{{ stock.position.productCode }}</strong></div>
+      <div><span>Barcode</span><strong>{{ stock.position.barcode || '—' }}</strong></div>
+      <div><span>Category</span><strong>{{ stock.position.categoryName }}</strong></div>
+      <div><span>On hand</span><strong>{{ qty(stock.position.currentStock) }}</strong></div>
+      <div><span>Maximum</span><strong>{{ stock.position.maximumStockLevel == null ? '—' : qty(stock.position.maximumStockLevel) }}</strong></div>
+      <div><span>Last purchase</span><strong>{{ date(stock.lastPurchase) }}</strong></div>
+      <div><span>Last sale</span><strong>{{ date(stock.lastSale) }}</strong></div>
+    </aside>
+    <div class="bf-table-wrap">
+      <table>
+        <caption>Buckets</caption>
+        <thead>
+          <tr>
+            <th>Location</th>
+            <th>Batch</th>
+            <th>Expiry</th>
+            <th class="end">On hand</th>
+            <th class="end">Reserved</th>
+            <th class="end">Available</th>
+            <th class="end">Unit cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (bucket of stock.buckets; track bucket.locationId + '-' + (bucket.batch ?? '') + '-' + (bucket.expiryDate ?? '')) {
+            <tr>
+              <td>{{ bucket.locationName }}</td>
+              <td>{{ bucket.batch || '—' }}</td>
+              <td>{{ date(bucket.expiryDate) }}</td>
+              <td class="end">{{ qty(bucket.quantityOnHand) }}</td>
+              <td class="end">{{ qty(bucket.reservedQuantity) }}</td>
+              <td class="end">{{ qty(bucket.availableQuantity) }}</td>
+              <td class="end">{{ money(bucket.unitCost) }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7">No stock is stored for this product yet. A purchase or adjustment will create a balance.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="bf-table-wrap">
+    <table>
+      <caption>Recent ledger</caption>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Reference</th>
+          <th>Location</th>
+          <th class="end">In</th>
+          <th class="end">Out</th>
+          <th class="end">Balance</th>
+          <th class="end">Value</th>
+          <th>User</th>
+          <th>Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of stock.movements; track row.id) {
+          <tr>
+            <td>{{ date(row.date) }}</td>
+            <td><app-status-badge [status]="row.transactionType" /></td>
+            <td>{{ row.referenceNumber }}</td>
+            <td>{{ row.locationName }}</td>
+            <td class="end">{{ qty(row.quantityIn) }}</td>
+            <td class="end">{{ qty(row.quantityOut) }}</td>
+            <td class="end">{{ qty(row.runningBalance) }}</td>
+            <td class="end">{{ money(row.totalValue) }}</td>
+            <td>{{ row.user }}</td>
+            <td>{{ row.remarks || '—' }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="10">No movements for this product yet. Sales, purchases, and adjustments will appear here.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+}

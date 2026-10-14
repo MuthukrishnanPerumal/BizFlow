@@ -1,0 +1,60 @@
+<app-page-header title="Sales returns" subtitle="Goods returned by customers, with stock and balance adjustments.">
+  <a *appHasPermission="'SALES_CREATE'" mat-flat-button color="primary" routerLink="new">New return</a>
+</app-page-header>
+
+<app-search-bar placeholder="Search return, invoice, customer, or reason" (queryChange)="onSearch($event)" />
+
+<app-filter-panel title="Filters">
+  <div class="filters">
+    <app-iso-date-field label="From" [formControl]="dateFrom" />
+    <app-iso-date-field label="To" [formControl]="dateTo" />
+  </div>
+</app-filter-panel>
+
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader layout="table" [rows]="6" />
+  } @else if (failed()) {
+    <app-error-state title="Could not load returns" [message]="errorMessage()" (retry)="load()" />
+  } @else if (rows().length === 0) {
+    <app-empty-state
+      title="No sales returns"
+      message="Returns show up after goods come back against an invoice. Adjust the dates, or start a return from a sale."
+    >
+      <a *appHasPermission="'SALES_CREATE'" mat-flat-button color="primary" routerLink="new">New return</a>
+    </app-empty-state>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>Return</th>
+          <th>Date</th>
+          <th>Invoice</th>
+          <th>Customer</th>
+          <th>Refund</th>
+          <th class="end">Total</th>
+          <th class="end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.id) {
+          <tr>
+            <td><a [routerLink]="['/sales-returns', row.id]">{{ row.returnNumber }}</a></td>
+            <td>{{ date(row.returnDate) }}</td>
+            <td><a [routerLink]="['/sales', row.saleId]">{{ row.invoiceNumber }}</a></td>
+            <td>{{ row.customerName }}</td>
+            <td>{{ row.refundMethod }}</td>
+            <td class="end num" data-label="Total">{{ money(row.grandTotal) }}</td>
+            <td class="end actions" data-label="Actions">
+              <div class="row-menu">
+                <a mat-button [routerLink]="['/sales-returns', row.id]">Open</a>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+<app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />

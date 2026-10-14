@@ -1,0 +1,16 @@
+<section class="bf-filter">
+  <button
+    type="button"
+    class="bf-filter-toggle"
+    (click)="toggle()"
+    [attr.aria-expanded]="expanded()"
+    [attr.aria-controls]="panelId"
+  >
+    <mat-icon aria-hidden="true">filter_list</mat-icon>
+    <span>{{ title() }}</span>
+    <mat-icon class="bf-chevron" aria-hidden="true">{{ expanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
+  </button>
+  <div class="bf-filter-body" [id]="panelId" [hidden]="!expanded()">
+    <ng-content />
+  </div>
+</section>

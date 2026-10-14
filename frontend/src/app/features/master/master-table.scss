@@ -1,0 +1,89 @@
+.actions {
+  white-space: nowrap;
+}
+
+.row-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0;
+}
+
+.row-menu a[mat-button] {
+  --mdc-text-button-label-text-color: var(--bf-accent);
+  color: var(--bf-accent);
+}
+
+app-search-bar,
+app-filter-panel {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.bf-table-wrap {
+  max-height: calc(100vh - 280px);
+}
+
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.clip {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px 12px;
+  align-items: start;
+  width: 100%;
+}
+
+@media (max-width: 960px) {
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.filters:has(> :only-child) {
+  grid-template-columns: minmax(0, 280px);
+}
+
+.filters mat-form-field,
+.filters app-search-bar,
+.filters app-record-lookup,
+.filters form,
+.filters > div {
+  min-width: 0;
+  width: 100%;
+}
+
+.filters app-search-bar {
+  grid-column: 1 / -1;
+}

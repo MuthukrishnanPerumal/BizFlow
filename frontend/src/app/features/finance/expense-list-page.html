@@ -1,0 +1,115 @@
+<app-page-header title="Expenses" subtitle="Money spent to run the business.">
+  <a *appHasPermission="'EXPENSE_CREATE'" mat-flat-button color="primary" routerLink="new">New expense</a>
+</app-page-header>
+
+<app-finance-nav />
+<app-search-bar placeholder="Search number, description, or reference" (queryChange)="onSearch($event)" />
+
+<app-filter-panel title="Filters">
+  <div class="filters">
+    <app-iso-date-field label="From" [formControl]="dateFrom" (committed)="applyFilters()" />
+    <app-iso-date-field label="To" [formControl]="dateTo" (committed)="applyFilters()" />
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Status</mat-label>
+      <mat-select [value]="status()" (selectionChange)="status.set($event.value); applyFilters()">
+        <mat-option value="">All statuses</mat-option>
+        <mat-option value="POSTED">Posted</mat-option>
+        <mat-option value="CANCELLED">Cancelled</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <details class="more-filters">
+      <summary>More filters</summary>
+      <div class="filters">
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Category</mat-label>
+      <mat-select [value]="category()" (selectionChange)="category.set($event.value); applyFilters()">
+        <mat-option value="">All categories</mat-option>
+        @for (item of categories; track item) {
+          <mat-option [value]="item">{{ item }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Method</mat-label>
+      <mat-select [value]="method()" (selectionChange)="method.set($event.value); applyFilters()">
+        <mat-option value="">All methods</mat-option>
+        @for (item of methods; track item) {
+          <mat-option [value]="item">{{ item.replaceAll('_', ' ') }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Minimum</mat-label>
+      <input matInput [formControl]="minAmount" (keyup.enter)="applyFilters()" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Maximum</mat-label>
+      <input matInput [formControl]="maxAmount" (keyup.enter)="applyFilters()" />
+    </mat-form-field>
+      </div>
+    </details>
+  </div>
+</app-filter-panel>
+
+@if (report(); as board) {
+  <section class="fin-kpis">
+    <article class="fin-kpi is-danger">
+      <span>Spent</span>
+      <strong>{{ money(board.postedTotal) }}</strong>
+      <small>Posted expenses in this view</small>
+    </article>
+    <article class="fin-kpi">
+      <span>Records</span>
+      <strong>{{ board.totalElements }}</strong>
+      <small>Matching this view</small>
+    </article>
+  </section>
+}
+
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader layout="table" [rows]="6" />
+  } @else if (failed()) {
+    <app-error-state title="Could not load expenses" [message]="errorMessage()" (retry)="load()" />
+  } @else if ((report()?.items?.length ?? 0) === 0) {
+    <app-empty-state
+      title="No expenses"
+      message="Nothing matches this search or these filters. Clear them above, or record an expense."
+    >
+      <a *appHasPermission="'EXPENSE_CREATE'" mat-flat-button color="primary" routerLink="new">New expense</a>
+    </app-empty-state>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th><button type="button" class="sort" (click)="toggleSort('expenseNumber')">Number <mat-icon>{{ sortMark('expenseNumber') }}</mat-icon></button></th>
+          <th><button type="button" class="sort" (click)="toggleSort('expenseDate')">Date <mat-icon>{{ sortMark('expenseDate') }}</mat-icon></button></th>
+          <th><button type="button" class="sort" (click)="toggleSort('category')">Category <mat-icon>{{ sortMark('category') }}</mat-icon></button></th>
+          <th>Description</th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('amount')">Amount <mat-icon>{{ sortMark('amount') }}</mat-icon></button></th>
+          <th><button type="button" class="sort" (click)="toggleSort('status')">Status <mat-icon>{{ sortMark('status') }}</mat-icon></button></th>
+          <th class="end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of report()?.items ?? []; track row.id) {
+          <tr>
+            <td><a [routerLink]="[row.id]">{{ row.expenseNumber }}</a></td>
+            <td>{{ date(row.expenseDate) }}</td>
+            <td>{{ row.category }}</td>
+            <td>{{ row.description }}</td>
+            <td class="end num" data-label="Amount">{{ money(row.amount) }}</td>
+            <td data-label="Status"><app-status-badge [status]="row.status" /></td>
+            <td class="end actions" data-label="Actions">
+              <div class="row-menu">
+                <a mat-button [routerLink]="[row.id]">Open</a>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+<app-pagination [page]="page()" [pageSize]="pageSize" [total]="report()?.totalElements ?? 0" (pageChange)="onPage($event)" />

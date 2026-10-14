@@ -1,0 +1,16 @@
+<mat-form-field appearance="outline" subscriptSizing="dynamic" class="bf-search">
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+  <input
+    matInput
+    type="search"
+    [placeholder]="placeholder()"
+    [attr.aria-label]="placeholder()"
+    [formControl]="control"
+    autocomplete="off"
+  />
+  @if (control.value) {
+    <button matSuffix type="button" class="bf-search-clear" aria-label="Clear search" (click)="clear()">
+      <mat-icon aria-hidden="true">close</mat-icon>
+    </button>
+  }
+</mat-form-field>

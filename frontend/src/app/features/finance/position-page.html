@@ -1,0 +1,130 @@
+<app-page-header
+  [title]="title()"
+  [subtitle]="kind() === 'receivable' ? 'Customers with an open balance. Record a payment to collect it.' : 'Suppliers with an open balance. Record a payment to settle it.'"
+>
+  <a
+    *appHasPermission="'PAYMENT_CREATE'"
+    mat-flat-button
+    color="primary"
+    [routerLink]="kind() === 'receivable' ? '/payments/customer/new' : '/payments/supplier/new'"
+  >
+    Record payment
+  </a>
+</app-page-header>
+
+<app-finance-nav />
+<app-search-bar placeholder="Search name or code" (queryChange)="onSearch($event)" />
+
+<app-filter-panel title="Filters">
+  <div class="filters">
+    <app-iso-date-field label="From" [formControl]="dateFrom" (committed)="applyFilters()" />
+    <app-iso-date-field label="To" [formControl]="dateTo" (committed)="applyFilters()" />
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Status</mat-label>
+      <mat-select [value]="status()" (selectionChange)="status.set($event.value); applyFilters()">
+        <mat-option value="">All balances</mat-option>
+        <mat-option value="OPEN">Open</mat-option>
+        <mat-option value="OVERDUE">Overdue</mat-option>
+        <mat-option value="SETTLED">Settled</mat-option>
+        <mat-option value="CREDIT">Credit</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <details class="more-filters">
+      <summary>More filters</summary>
+      <div class="filters">
+        <mat-form-field appearance="outline" floatLabel="always">
+          <mat-label>Minimum balance</mat-label>
+          <input matInput [formControl]="minAmount" (keyup.enter)="applyFilters()" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" floatLabel="always">
+          <mat-label>Maximum balance</mat-label>
+          <input matInput [formControl]="maxAmount" (keyup.enter)="applyFilters()" />
+        </mat-form-field>
+      </div>
+    </details>
+  </div>
+</app-filter-panel>
+
+@if (report(); as board) {
+  <section class="fin-kpis">
+    <article class="fin-kpi is-danger">
+      <span>{{ kind() === 'receivable' ? 'Customers owe' : 'We owe' }}</span>
+      <strong>{{ money(board.totalOutstanding) }}</strong>
+      <small>{{ board.totalElements }} {{ kind() === 'receivable' ? 'customers' : 'suppliers' }}</small>
+    </article>
+    <article class="fin-kpi is-warning">
+      <span>Overdue</span>
+      <strong>{{ money(board.totalOverdue) }}</strong>
+      <small>{{ overdueCount() }} past due where terms are known</small>
+    </article>
+    <article class="fin-kpi">
+      <span>{{ documentHeading() }}</span>
+      <strong>{{ money(documentTotal()) }}</strong>
+      <small>In the selected period</small>
+    </article>
+    <article class="fin-kpi is-ok">
+      <span>Payments</span>
+      <strong>{{ money(board.totalPayments) }}</strong>
+      <small>Net settlements in the period</small>
+    </article>
+  </section>
+}
+
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader layout="table" [rows]="6" />
+  } @else if (failed()) {
+    <app-error-state [title]="'Could not load ' + title().toLowerCase()" [message]="errorMessage()" (retry)="load()" />
+  } @else if ((report()?.items?.length ?? 0) === 0) {
+    <app-empty-state
+      title="No balances"
+      message="No parties match this search or status. Clear the filters, post a document to open a balance, or record a payment."
+    >
+      <a
+        *appHasPermission="'PAYMENT_CREATE'"
+        mat-flat-button
+        color="primary"
+        [routerLink]="kind() === 'receivable' ? '/payments/customer/new' : '/payments/supplier/new'"
+      >
+        Record payment
+      </a>
+    </app-empty-state>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th><button type="button" class="sort" (click)="toggleSort('partyName')">{{ partyHeading() }} <mat-icon>{{ sortMark('partyName') }}</mat-icon></button></th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort(kind() === 'receivable' ? 'totalSales' : 'totalPurchases')">{{ documentHeading() }} <mat-icon>{{ sortMark(kind() === 'receivable' ? 'totalSales' : 'totalPurchases') }}</mat-icon></button></th>
+          <th class="end">Returns</th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('totalPayments')">Payments <mat-icon>{{ sortMark('totalPayments') }}</mat-icon></button></th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('outstanding')">{{ kind() === 'receivable' ? 'They owe' : 'We owe' }} <mat-icon>{{ sortMark('outstanding') }}</mat-icon></button></th>
+          <th>Overdue</th>
+          <th>Status</th>
+          <th class="end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of report()?.items ?? []; track code(row)) {
+          <tr>
+            <td>{{ name(row) }}<br /><small>{{ code(row) }}</small></td>
+            <td class="end">{{ money(documents(row)) }}</td>
+            <td class="end">{{ money(row.totalReturns) }}</td>
+            <td class="end">{{ money(row.totalPayments) }}</td>
+            <td class="end" [class]="balanceClass(row.outstanding)">{{ money(row.outstanding) }}</td>
+            <td [class]="row.overdueSupported && balanceClass(row.overdueAmount ?? 0) === 'due' ? 'due' : ''">
+              {{ row.overdueSupported ? money(row.overdueAmount) : '—' }}
+            </td>
+            <td><app-status-badge [status]="row.status" /></td>
+            <td class="end actions" data-label="Actions">
+              <div class="row-menu">
+                <a mat-button [routerLink]="paymentLink(row)" [queryParams]="paymentQuery(row)">Payments</a>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+<app-pagination [page]="page()" [pageSize]="pageSize" [total]="report()?.totalElements ?? 0" (pageChange)="onPage($event)" />

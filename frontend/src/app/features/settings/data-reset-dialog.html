@@ -1,0 +1,56 @@
+<h2 mat-dialog-title>Reset data</h2>
+<mat-dialog-content>
+  <p class="intro">
+    Select the tables to empty. Delete removes every row in the selection. Users, roles, permissions, and company settings are not listed.
+  </p>
+  @if (errorMessage()) {
+    <p class="field-error" role="alert">{{ errorMessage() }}</p>
+  }
+  @if (loading()) {
+    <p class="hint">Loading tables…</p>
+  } @else if (tables().length === 0 && !errorMessage()) {
+    <p class="hint">No tables are available to reset.</p>
+  } @else {
+    <mat-checkbox
+      class="select-all"
+      [checked]="allSelected()"
+      [indeterminate]="someSelected()"
+      [disabled]="deleting()"
+      (change)="toggleAll($event.checked)"
+    >
+      Select all
+    </mat-checkbox>
+    <div class="table-list">
+      @for (group of groups(); track group.name) {
+        <section>
+          <h3>{{ group.name }}</h3>
+          @for (table of group.rows; track table.key) {
+            <div class="reset-row">
+              <mat-checkbox
+                [checked]="isSelected(table.key)"
+                [disabled]="deleting()"
+                (change)="toggle(table.key, $event.checked)"
+              >
+                {{ table.label }}
+              </mat-checkbox>
+              <span class="meta">{{ table.table }} · {{ table.rowCount }} {{ table.rowCount === 1 ? 'row' : 'rows' }}</span>
+            </div>
+          }
+        </section>
+      }
+    </div>
+    <p class="hint">Selecting a table also selects the records that belong to it, so the delete can finish.</p>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button type="button" mat-stroked-button [disabled]="deleting()" (click)="cancel()">Cancel</button>
+  <button
+    type="button"
+    mat-flat-button
+    color="warn"
+    [disabled]="deleting() || selected().size === 0"
+    (click)="remove()"
+  >
+    {{ deleting() ? 'Deleting…' : 'Delete' }}
+  </button>
+</mat-dialog-actions>

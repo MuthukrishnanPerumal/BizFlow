@@ -1,0 +1,53 @@
+<app-page-header [title]="expenseId() ? 'Edit expense' : 'New expense'" subtitle="The amount is posted to the expense account and the chosen funds account.">
+  <a mat-button routerLink="..">Back</a>
+</app-page-header>
+
+<app-finance-nav />
+
+@if (errorMessage()) {
+  <p class="banner" role="alert">{{ errorMessage() }}</p>
+}
+
+<form class="fin-form" (submit)="$event.preventDefault(); save()">
+  <div class="filters">
+    <mat-form-field appearance="outline">
+      <mat-label>Date</mat-label>
+      <input matInput type="date" [formControl]="expenseDate" (change)="markDirty()" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Category</mat-label>
+      <mat-select [value]="category()" (selectionChange)="category.set($event.value); markDirty()">
+        @for (item of categories; track item) {
+          <mat-option [value]="item">{{ item }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Description</mat-label>
+      <input matInput [formControl]="description" (input)="markDirty()" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Amount</mat-label>
+      <input matInput [formControl]="amount" (input)="markDirty()" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Method</mat-label>
+      <mat-select [value]="method()" (selectionChange)="method.set($event.value); markDirty()">
+        @for (item of methods; track item) {
+          <mat-option [value]="item">{{ item.replaceAll('_', ' ') }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Reference</mat-label>
+      <input matInput [formControl]="reference" (input)="markDirty()" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Notes</mat-label>
+      <textarea matInput rows="3" [formControl]="notes" (input)="markDirty()"></textarea>
+    </mat-form-field>
+  </div>
+  <div class="fin-actions">
+    <button class="bf-busy" mat-flat-button color="primary" type="submit" [disabled]="saving()" [attr.aria-busy]="saving() ? true : null">{{ saving() ? 'Saving…' : 'Save expense' }}</button>
+  </div>
+</form>

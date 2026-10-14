@@ -1,0 +1,15 @@
+.period {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.range {
+  width: min(100%, 240px);
+}
+
+app-iso-date-field {
+  width: min(100%, 220px);
+}

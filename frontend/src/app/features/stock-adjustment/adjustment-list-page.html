@@ -1,0 +1,79 @@
+<app-page-header title="Stock adjustments" subtitle="Corrections to on-hand stock, with the reason and the quantity posted.">
+  <a mat-flat-button color="primary" routerLink="new">New adjustment</a>
+</app-page-header>
+<app-inventory-nav />
+<app-search-bar placeholder="Search number, product, reference, or notes" (queryChange)="onSearch($event)" />
+<app-filter-panel title="Filters">
+  <div class="filters">
+    <app-iso-date-field label="From" [formControl]="dateFrom" (committed)="applyFilters()" />
+    <app-iso-date-field label="To" [formControl]="dateTo" (committed)="applyFilters()" />
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Direction</mat-label>
+      <mat-select [value]="direction()" (selectionChange)="onDirection($event.value)">
+        <mat-option value="">Increase and decrease</mat-option>
+        <mat-option value="INCREASE">Increase</mat-option>
+        <mat-option value="DECREASE">Decrease</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" floatLabel="always">
+      <mat-label>Location</mat-label>
+      <mat-select [value]="locationId() ?? ''" (selectionChange)="onLocation($event.value)">
+        <mat-option value="">All locations</mat-option>
+        @for (location of locations(); track location.id) {
+          <mat-option [value]="location.id">{{ location.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+</app-filter-panel>
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader layout="table" [rows]="6" />
+  } @else if (failed()) {
+    <app-error-state title="Could not load adjustments" [message]="errorMessage()" (retry)="load()" />
+  } @else if (rows().length === 0) {
+    <app-empty-state
+      title="No adjustments"
+      message="Nothing matches this search or these filters. Create an adjustment when a count, damage, or opening balance needs posting."
+    >
+      <a mat-flat-button color="primary" routerLink="new">New adjustment</a>
+    </app-empty-state>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th><button type="button" class="sort" (click)="toggleSort('adjustmentNumber')">Number <mat-icon>{{ sortMark('adjustmentNumber') }}</mat-icon></button></th>
+          <th><button type="button" class="sort" (click)="toggleSort('adjustmentDate')">Date <mat-icon>{{ sortMark('adjustmentDate') }}</mat-icon></button></th>
+          <th>Product</th>
+          <th>Location</th>
+          <th>Direction</th>
+          <th>Reason</th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('quantity')">Quantity <mat-icon>{{ sortMark('quantity') }}</mat-icon></button></th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('totalValue')">Value <mat-icon>{{ sortMark('totalValue') }}</mat-icon></button></th>
+          <th>Reference</th>
+          <th>User</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.id) {
+          <tr>
+            <td>{{ row.adjustmentNumber }}</td>
+            <td>{{ date(row.adjustmentDate) }}</td>
+            <td>
+              <a [routerLink]="['/inventory/products', row.productId]">{{ row.productName }}</a>
+              <small>{{ row.productCode }}</small>
+            </td>
+            <td>{{ row.locationName }}</td>
+            <td><app-status-badge [status]="row.direction" /></td>
+            <td>{{ label(row.reason) }}</td>
+            <td class="end">{{ qty(row.quantity) }}</td>
+            <td class="end">{{ money(row.totalValue) }}</td>
+            <td>{{ row.referenceNumber || '—' }}</td>
+            <td>{{ row.user }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />
+  }
+</div>

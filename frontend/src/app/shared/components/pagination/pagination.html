@@ -1,0 +1,18 @@
+<nav class="bf-pagination" aria-label="Pagination">
+  <span class="bf-num">{{ rangeStart() }}–{{ rangeEnd() }} of {{ total() }}</span>
+  <div>
+    <button type="button" mat-icon-button aria-label="Previous page" [disabled]="page() === 0" (click)="previous()">
+      <mat-icon aria-hidden="true">chevron_left</mat-icon>
+    </button>
+    <span class="bf-page bf-num">{{ page() + 1 }} / {{ totalPages() }}</span>
+    <button
+      type="button"
+      mat-icon-button
+      aria-label="Next page"
+      [disabled]="page() + 1 >= totalPages()"
+      (click)="next()"
+    >
+      <mat-icon aria-hidden="true">chevron_right</mat-icon>
+    </button>
+  </div>
+</nav>

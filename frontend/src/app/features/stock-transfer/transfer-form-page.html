@@ -1,0 +1,110 @@
+<app-page-header title="New stock transfer" subtitle="Choose where stock leaves, where it arrives, then the product and quantity.">
+  <a mat-stroked-button routerLink="/stock-transfer">Cancel</a>
+</app-page-header>
+<app-inventory-nav />
+
+@if (errorMessage()) {
+  <p class="banner" role="alert">{{ errorMessage() }}</p>
+}
+
+<form class="inv-panel" [formGroup]="form" (ngSubmit)="save(false)">
+  <div class="lane">
+    <mat-form-field appearance="outline">
+      <mat-label>From</mat-label>
+      <mat-select formControlName="fromLocationId">
+        @for (location of locations(); track location.id) {
+          <mat-option [value]="location.id">{{ location.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <span class="arrow" aria-hidden="true">→</span>
+    <mat-form-field appearance="outline">
+      <mat-label>To</mat-label>
+      <mat-select formControlName="toLocationId">
+        <mat-option value="">Select destination</mat-option>
+        @for (location of locations(); track location.id) {
+          <mat-option [value]="location.id">{{ location.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+  <div class="form-grid">
+    <mat-form-field appearance="outline">
+      <mat-label>Transfer date</mat-label>
+      <input matInput type="date" formControlName="transferDate" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="span-2">
+      <mat-label>Reason</mat-label>
+      <input matInput formControlName="reason" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Notes</mat-label>
+      <input matInput formControlName="notes" />
+    </mat-form-field>
+  </div>
+  <p class="hint">Status stays Draft until you complete the transfer. Completing moves the quantity from one place to the other.</p>
+
+  <details class="more-filters">
+    <summary>Add a place</summary>
+    <div class="form-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Code</mat-label>
+        <input matInput [formControl]="locationCode" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Name</mat-label>
+        <input matInput [formControl]="locationName" />
+      </mat-form-field>
+      <button mat-stroked-button type="button" (click)="createLocation()">Save place</button>
+    </div>
+  </details>
+
+  <h2>Product and quantity</h2>
+  <mat-form-field appearance="outline" class="span-3">
+    <mat-label>Product</mat-label>
+    <input matInput [formControl]="productSearch" placeholder="Search a stocked product" />
+  </mat-form-field>
+  @if (hits().length > 0) {
+    <div class="hits">
+      @for (hit of hits(); track hit.id) {
+        <button type="button" (click)="addProduct(hit)">{{ hit.name }} · {{ hit.productCode }}</button>
+      }
+    </div>
+  }
+
+  <div formArrayName="lines">
+    @for (line of lines.controls; track $index) {
+      <div class="line-card" [formGroupName]="$index">
+        <p>{{ line.controls.label.value }}</p>
+        <mat-form-field appearance="outline">
+          <mat-label>Quantity</mat-label>
+          <input matInput formControlName="quantity" inputmode="decimal" />
+        </mat-form-field>
+        @if (line.controls.batchRequired.value) {
+          <mat-form-field appearance="outline">
+            <mat-label>Batch</mat-label>
+            <input matInput formControlName="batch" />
+          </mat-form-field>
+        }
+        @if (line.controls.expiryRequired.value) {
+          <mat-form-field appearance="outline">
+            <mat-label>Expiry</mat-label>
+            <input matInput type="date" formControlName="expiryDate" />
+          </mat-form-field>
+        }
+        @if (line.controls.serialRequired.value) {
+          <mat-form-field appearance="outline">
+            <mat-label>Serials</mat-label>
+            <textarea matInput rows="2" formControlName="serials"></textarea>
+          </mat-form-field>
+        }
+        <button mat-stroked-button type="button" (click)="removeLine($index)">Remove</button>
+      </div>
+    }
+  </div>
+
+  <div class="actions">
+    <button mat-stroked-button type="submit" [disabled]="saving()" [attr.aria-busy]="saving() ? true : null">Save as draft</button>
+    <button class="bf-busy" mat-flat-button color="primary" type="button" [disabled]="saving()" [attr.aria-busy]="saving() ? true : null" (click)="save(true)">{{ saving() ? 'Saving…' : 'Complete transfer' }}</button>
+  </div>
+</form>

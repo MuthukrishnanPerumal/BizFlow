@@ -1,0 +1,76 @@
+@if (loading()) {
+  <app-skeleton-loader [rows]="6" />
+} @else if (failed()) {
+  <app-error-state title="Could not load return" [message]="errorMessage()" (retry)="load()" />
+} @else if (record(); as row) {
+  <app-page-header [title]="row.returnNumber" [subtitle]="'Against ' + row.invoiceNumber">
+    <a mat-button [routerLink]="['/sales', row.saleId]">Open invoice</a>
+    <a mat-stroked-button class="no-print" [routerLink]="['/sales-returns', row.id, 'print']">Print</a>
+    <a mat-button routerLink="/sales-returns">Returns</a>
+  </app-page-header>
+  <div class="sections">
+    <section class="panel">
+      <div class="facts">
+        <div><span>Date</span><strong>{{ date(row.returnDate) }}</strong></div>
+        <div><span>Customer</span><strong>{{ row.customer.customerName }}</strong></div>
+        <div><span>Outstanding</span><strong>{{ money(row.customer.balance) }}</strong></div>
+        <div><span>Refund</span><strong>{{ row.refundMethod }}</strong></div>
+        <div><span>Reason</span><strong>{{ row.reason }}</strong></div>
+      </div>
+      @if (row.notes) {
+        <p>{{ row.notes }}</p>
+      }
+    </section>
+    <section class="panel">
+      <h2>Items</h2>
+      <div class="bf-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th class="end">Qty</th>
+              <th class="end">Discount reversed</th>
+              <th class="end">Tax reversed</th>
+              <th class="end">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of row.items; track item.id) {
+              <tr>
+                <td>{{ item.productName }}<div class="hint">{{ item.serials.join(', ') }}</div></td>
+                <td class="end">{{ item.quantity }}</td>
+                <td class="end">{{ money(item.discount) }}</td>
+                <td class="end">{{ money(item.taxAmount) }}</td>
+                <td class="end">{{ money(item.total) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <dl class="totals">
+        <div><dt>Merchandise</dt><dd>{{ money(row.merchandiseTotal) }}</dd></div>
+        <div><dt>Discount reversal</dt><dd>{{ money(row.discountReversal) }}</dd></div>
+        <div><dt>Tax reversal</dt><dd>{{ money(row.taxReversal) }}</dd></div>
+        <div class="grand"><dt>Return total</dt><dd>{{ money(row.grandTotal) }}</dd></div>
+      </dl>
+    </section>
+    <section class="panel">
+      <h2>Stock impact</h2>
+      <div class="bf-table-wrap">
+        <table>
+          <thead><tr><th>Product</th><th>Type</th><th class="end">In</th><th class="end">Balance</th></tr></thead>
+          <tbody>
+            @for (stock of row.stockImpact; track stock.id) {
+              <tr>
+                <td>{{ stock.productName }}</td>
+                <td>{{ stock.transactionType }}</td>
+                <td class="end">{{ stock.quantityIn }}</td>
+                <td class="end">{{ stock.runningBalance }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+}

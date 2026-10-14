@@ -1,0 +1,17 @@
+<div class="period">
+  <mat-form-field class="range" appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Period</mat-label>
+    <mat-select [value]="preset()" (selectionChange)="choose($event.value)" aria-label="Date range">
+      @for (option of options; track option.id) {
+        <mat-option [value]="option.id">{{ option.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  @if (preset() === 'CUSTOM') {
+    <app-iso-date-field label="From" subscriptSizing="dynamic" [value]="from()" (committed)="fromChange.emit($event)" />
+    <app-iso-date-field label="To" subscriptSizing="dynamic" [value]="to()" (committed)="toChange.emit($event)" />
+  }
+
+  <button type="button" mat-button (click)="reset.emit()">Reset</button>
+</div>

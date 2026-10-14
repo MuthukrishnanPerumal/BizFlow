@@ -1,0 +1,114 @@
+<app-page-header
+  [title]="editing ? 'Edit user' : 'New user'"
+  subtitle="Personal details, sign-in credentials, and the roles this person will use."
+>
+  <a mat-button routerLink="/users">Back to users</a>
+</app-page-header>
+
+@if (loading()) {
+  <app-skeleton-loader [rows]="6" />
+} @else {
+  <form class="stack" [formGroup]="form" (ngSubmit)="submit()">
+    <app-form-section title="Personal information" description="How this person is identified in the workspace.">
+      <div class="grid">
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Full name</mat-label>
+            <input matInput formControlName="fullName" autocomplete="name" />
+          </mat-form-field>
+          @if (invalid('fullName')) {
+            <p class="field-error">{{ form.controls.fullName.hasError('server') ? form.controls.fullName.getError('server') : 'Enter a full name.' }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Email</mat-label>
+            <input matInput formControlName="email" autocomplete="email" />
+          </mat-form-field>
+          @if (invalid('email')) {
+            <p class="field-error">{{ form.controls.email.hasError('server') ? form.controls.email.getError('server') : 'Enter a valid email address.' }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Phone</mat-label>
+            <input matInput formControlName="phone" autocomplete="tel" />
+          </mat-form-field>
+          @if (invalid('phone')) {
+            <p class="field-error">Enter a valid phone number or leave it blank.</p>
+          }
+        </div>
+      </div>
+    </app-form-section>
+
+    <app-form-section title="Login information" description="Username stays the same after the account is created.">
+      <div class="grid">
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Username</mat-label>
+            <input matInput formControlName="username" autocomplete="off" />
+          </mat-form-field>
+          @if (invalid('username')) {
+            <p class="field-error">{{ form.controls.username.hasError('server') ? form.controls.username.getError('server') : 'Use 3 to 64 letters, numbers, dots, underscores, or hyphens.' }}</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ editing ? 'New password' : 'Password' }}</mat-label>
+            <input matInput [type]="passwordVisible() ? 'text' : 'password'" formControlName="password" autocomplete="new-password" />
+            <button mat-icon-button matSuffix type="button" (click)="passwordVisible.set(!passwordVisible())" [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'">
+              <mat-icon>{{ passwordVisible() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+          </mat-form-field>
+          @if (invalid('password')) {
+            <p class="field-error">Use 10 to 72 characters with uppercase, lowercase, a number, and a symbol.</p>
+          } @else if (editing) {
+            <p class="hint">Leave blank to keep the current password. A replacement must be changed at the next sign-in.</p>
+          }
+        </div>
+        <div>
+          <mat-form-field appearance="outline">
+            <mat-label>Confirm password</mat-label>
+            <input matInput [type]="passwordVisible() ? 'text' : 'password'" formControlName="confirmPassword" autocomplete="new-password" />
+          </mat-form-field>
+          @if (form.hasError('mismatch') && (form.controls.confirmPassword.touched || form.touched)) {
+            <p class="field-error">The confirmation does not match.</p>
+          }
+        </div>
+      </div>
+    </app-form-section>
+
+    <app-form-section title="Access" description="Status controls sign-in. Roles decide which actions are allowed.">
+      <mat-form-field appearance="outline" class="status">
+        <mat-label>Status</mat-label>
+        <mat-select formControlName="status">
+          <mat-option value="ACTIVE">Active</mat-option>
+          <mat-option value="INACTIVE">Inactive</mat-option>
+          <mat-option value="LOCKED">Locked</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <div class="roles">
+        @for (role of roles(); track role.id) {
+          <mat-checkbox [checked]="selectedRoles().has(role.id)" (change)="toggleRole(role.id, $event.checked)">
+            <span class="role-name">{{ role.name }}</span>
+            <span class="role-code">{{ role.code }}</span>
+          </mat-checkbox>
+        }
+      </div>
+    </app-form-section>
+
+    <div class="actions">
+      @if ((!editing && auth.hasPermission('USER_CREATE')) || (editing && auth.hasPermission('USER_UPDATE'))) {
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()" [attr.aria-busy]="saving() ? true : null">
+          @if (saving()) {
+            <mat-progress-spinner diameter="18" mode="indeterminate" />
+          }
+          {{ editing ? 'Save changes' : 'Create user' }}
+        </button>
+      }
+      @if (editing && auth.user()?.id !== userId()) {
+        <button *appHasPermission="'USER_DELETE'" type="button" mat-button color="warn" (click)="remove()">Delete user</button>
+      }
+    </div>
+  </form>
+}

@@ -1,0 +1,40 @@
+.bf-filter {
+  border: 1px solid var(--bf-border);
+  background: var(--bf-surface);
+  border-radius: var(--bf-radius);
+  margin-bottom: var(--bf-space-3);
+}
+
+.bf-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--bf-space-2);
+  width: 100%;
+  padding: var(--bf-space-2) var(--bf-space-3);
+  border: 0;
+  background: transparent;
+  color: var(--bf-text);
+  font: inherit;
+  font-size: var(--bf-text-secondary-size);
+  font-weight: var(--bf-weight-semibold);
+  cursor: pointer;
+  text-align: left;
+}
+
+.bf-chevron {
+  margin-left: auto;
+}
+
+.bf-filter-body {
+  padding: var(--bf-space-3) var(--bf-space-3) var(--bf-space-1);
+  border-top: 1px solid var(--bf-border);
+}
+
+.bf-filter-body[hidden] {
+  display: none;
+}
+
+:host ::ng-deep .bf-filter-body > mat-form-field {
+  width: min(100%, 280px);
+  max-width: 280px;
+}

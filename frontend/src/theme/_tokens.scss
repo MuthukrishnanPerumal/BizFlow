@@ -1,0 +1,136 @@
+// Light is the active theme. Dark mode is the same variable names under
+// html[data-theme='dark'] so components do not need a second stylesheet.
+
+:root,
+html[data-theme='light'] {
+  color-scheme: light;
+  --bf-font: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  --bf-font-native: 'Segoe UI', sans-serif;
+  --bf-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --bf-bg: #f3f5f8;
+  --bf-surface: #ffffff;
+  --bf-surface-muted: #f7f9fb;
+  --bf-surface-elevated: #ffffff;
+  --bf-sidebar: #12181f;
+  --bf-sidebar-elevated: #1c2631;
+  --bf-sidebar-active: #243140;
+  --bf-sidebar-text: #c5ced8;
+  --bf-sidebar-text-active: #f8fafc;
+  --bf-border: #e3e8ee;
+  --bf-border-strong: #cfd6df;
+  --bf-skeleton: #e7edf3;
+
+  --bf-text: #15202b;
+  --bf-text-secondary: #3e4c59;
+  --bf-text-muted: #5c6b7a;
+  --bf-text-disabled: #6d7b88;
+
+  --bf-accent: #0f6f6a;
+  --bf-accent-hover: #0c5c58;
+  --bf-accent-soft: #e7f3f2;
+  --bf-on-accent: #ffffff;
+  --bf-secondary: #3e4c59;
+  --bf-secondary-soft: #eef2f5;
+  --bf-danger: #b42318;
+  --bf-danger-soft: #fdeceb;
+  --bf-on-danger: #ffffff;
+  --bf-warning: #b54708;
+  --bf-warning-soft: #fef4e6;
+  --bf-on-warning: #ffffff;
+  --bf-success: #067647;
+  --bf-success-soft: #e7f6ef;
+  --bf-on-success: #ffffff;
+  --bf-info: #175cd3;
+  --bf-info-soft: #e8f0fe;
+  --bf-on-info: #ffffff;
+  --bf-focus: #0f6f6a;
+
+  --bf-radius-sm: 4px;
+  --bf-radius: 6px;
+  --bf-radius-md: 8px;
+  --bf-shadow-raised: 0 1px 2px rgba(21, 32, 43, 0.06);
+  --bf-shadow-overlay: 0 8px 24px rgba(21, 32, 43, 0.12);
+
+  --bf-space-1: 4px;
+  --bf-space-2: 8px;
+  --bf-space-3: 12px;
+  --bf-space-4: 16px;
+  --bf-space-5: 20px;
+  --bf-space-6: 24px;
+  --bf-space-8: 32px;
+  --bf-space-10: 40px;
+
+  --bf-control-height: 32px;
+  --bf-control-height-lg: 36px;
+  --bf-date-input-height: 24px;
+  --bf-header-h: 56px;
+  --bf-sidebar-w: 248px;
+  --bf-sidebar-collapsed: 72px;
+
+  --bf-text-page-size: 22px;
+  --bf-text-page-size-sm: 20px;
+  --bf-text-section-size: 16px;
+  --bf-text-card-size: 14px;
+  --bf-text-body-size: 14px;
+  --bf-text-secondary-size: 13px;
+  --bf-text-label-size: 12px;
+  --bf-text-helper-size: 12px;
+  --bf-text-table-size: 13px;
+  --bf-text-table-header-size: 12px;
+  --bf-text-kpi-size: 22px;
+  --bf-text-status-size: 12px;
+  --bf-leading-tight: 1.25;
+  --bf-leading-body: 1.45;
+  --bf-weight-regular: 400;
+  --bf-weight-medium: 500;
+  --bf-weight-semibold: 600;
+
+  --bf-table-cell-y: 8px;
+  --bf-table-cell-x: 12px;
+  --bf-status-height: 22px;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --bf-bg: #0e141b;
+  --bf-surface: #161d26;
+  --bf-surface-muted: #1c2530;
+  --bf-surface-elevated: #222c38;
+  --bf-sidebar: #0b1016;
+  --bf-sidebar-elevated: #161d26;
+  --bf-sidebar-active: #243140;
+  --bf-sidebar-text: #c5ced8;
+  --bf-sidebar-text-active: #f4f7fa;
+  --bf-border: #2c3846;
+  --bf-border-strong: #3d4d5e;
+  --bf-skeleton: #2a3644;
+
+  --bf-text: #e8eef4;
+  --bf-text-secondary: #c5d0db;
+  --bf-text-muted: #9aabbc;
+  --bf-text-disabled: #7f90a1;
+
+  --bf-accent: #3dbeb6;
+  --bf-accent-hover: #67d0c8;
+  --bf-accent-soft: #143330;
+  --bf-on-accent: #06211f;
+  --bf-secondary: #c5d0db;
+  --bf-secondary-soft: #24303c;
+  --bf-danger: #f0a8a2;
+  --bf-danger-soft: #3a1c1a;
+  --bf-on-danger: #2a0d0b;
+  --bf-warning: #f0c08a;
+  --bf-warning-soft: #3a2a16;
+  --bf-on-warning: #2a1a08;
+  --bf-success: #8fd4b4;
+  --bf-success-soft: #143328;
+  --bf-on-success: #062117;
+  --bf-info: #a9c4f5;
+  --bf-info-soft: #1a2744;
+  --bf-on-info: #0c1730;
+  --bf-focus: #7dccc6;
+
+  --bf-shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --bf-shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.45);
+}

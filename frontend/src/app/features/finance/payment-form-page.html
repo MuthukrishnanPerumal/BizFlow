@@ -1,0 +1,149 @@
+<app-page-header [title]="title()" subtitle="Enter the amount, then apply it to open invoices. Anything left over stays as an advance.">
+  <a mat-button routerLink="..">Back</a>
+</app-page-header>
+
+<app-finance-nav />
+
+@if (errorMessage()) {
+  <p class="banner" role="alert">{{ errorMessage() }}</p>
+}
+
+<form class="workspace" (submit)="$event.preventDefault(); save()">
+  <div class="bill-main">
+    <section class="panel">
+      <h2>{{ party() === 'customer' ? 'Customer' : 'Supplier' }}</h2>
+      @if (partyId() && partyHits().length === 0) {
+        <div class="customer-chip">
+          <div>
+            <strong>{{ partyLabelText() }}</strong>
+          </div>
+          @if (paymentId() === null) {
+            <button type="button" mat-button (click)="clearParty()">Change</button>
+          }
+        </div>
+      }
+      <div class="grid">
+        <mat-form-field appearance="outline">
+          <mat-label>{{ party() === 'customer' ? 'Customer' : 'Supplier' }}</mat-label>
+          <input matInput [formControl]="partySearch" [readonly]="paymentId() !== null" (input)="markDirty()" (keydown.enter)="takeParty($event)" autocomplete="off" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Payment date</mat-label>
+          <input matInput type="date" [formControl]="paymentDate" (change)="markDirty()" />
+        </mat-form-field>
+      </div>
+      @if (partyHits().length > 0) {
+        <div class="hits">
+          @for (match of partyHits(); track match.id) {
+            <button type="button" class="hit" (click)="chooseParty(match)">
+              <strong>{{ partyName(match) }}</strong>
+              <span class="meta">{{ party() === 'customer' ? match.customerCode : match.supplierCode }}</span>
+            </button>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="panel">
+      <h2>Payment</h2>
+      <div class="grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Amount</mat-label>
+          <input #amountInput matInput [value]="amount.value" (input)="onAmount($any($event.target).value)" inputmode="decimal" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Method</mat-label>
+          <mat-select [value]="method()" (selectionChange)="method.set($event.value); markDirty()">
+            @for (item of methods; track item) {
+              <mat-option [value]="item">{{ methodLabel(item) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="actions">
+        <button type="button" mat-stroked-button (click)="fillOldest()" [disabled]="rows().length === 0">Apply to oldest invoices</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Open invoices</h2>
+      <div class="bf-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Date</th>
+              <th class="end">Open</th>
+              <th>Due</th>
+              <th class="end">Allocate</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.invoice.invoiceId; let index = $index) {
+              <tr>
+                <td data-label="Invoice">{{ row.invoice.documentNumber }}</td>
+                <td data-label="Date">{{ date(row.invoice.documentDate) }}</td>
+                <td class="end" data-label="Open" [class]="row.invoice.overdue ? 'due' : ''">{{ money(row.invoice.openBalance) }}</td>
+                <td data-label="Due">
+                  @if (row.invoice.dueDateSupported) {
+                    {{ date(row.invoice.dueDate) }}
+                    @if (row.invoice.overdue) {
+                      <app-status-badge status="OVERDUE" />
+                    }
+                  } @else {
+                    Terms not set
+                  }
+                </td>
+                <td class="end" data-label="Allocate">
+                  <input class="alloc" [value]="row.amount" (input)="onAllocate(index, $any($event.target).value)" inputmode="decimal" [attr.aria-label]="'Allocate to ' + row.invoice.documentNumber" />
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5">Choose a party to see open invoices. A payment with no allocation is stored as an advance.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <details class="panel adjustments">
+      <summary>Reference and notes</summary>
+      <div class="grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Reference</mat-label>
+          <input matInput [formControl]="reference" (input)="markDirty()" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Notes</mat-label>
+          <textarea matInput rows="2" [formControl]="notes" (input)="markDirty()"></textarea>
+        </mat-form-field>
+      </div>
+    </details>
+  </div>
+
+  <aside class="summary">
+    <h2>Payment</h2>
+    <dl class="grand">
+      <dt>Amount</dt>
+      <dd>{{ money(amount.value || 0) }}</dd>
+    </dl>
+    <dl class="totals">
+      <div><dt>Applied</dt><dd>{{ money(appliedAmount()) }}</dd></div>
+      <div><dt>Advance</dt><dd [class]="unallocated().startsWith('-') ? 'due' : ''">{{ money(unallocated()) }}</dd></div>
+    </dl>
+    <p class="hint">
+      @if (unallocated().startsWith('-')) {
+        Allocated amounts cannot exceed the payment.
+      } @else {
+        The advance stays on the account until you apply it to an invoice.
+      }
+    </p>
+    <div class="actions">
+      <button class="complete bf-busy" mat-flat-button color="primary" type="submit" [disabled]="saving()" [attr.aria-busy]="saving() ? true : null">
+        {{ saving() ? 'Saving…' : 'Save payment' }}
+      </button>
+    </div>
+  </aside>
+</form>

@@ -1,0 +1,143 @@
+<app-page-header title="Inventory" subtitle="Stock health, alerts, and recent movement.">
+  <a mat-stroked-button routerLink="/stock-adjustment/new">Adjust stock</a>
+  <a mat-flat-button color="primary" routerLink="/stock-transfer/new">Transfer stock</a>
+</app-page-header>
+
+<app-inventory-nav />
+
+<app-filter-panel title="Filters">
+  <div class="filters">
+    <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+      <mat-label>Location</mat-label>
+      <mat-select [value]="locationId() ?? ''" (selectionChange)="onLocation($event.value)">
+        <mat-option value="">All locations</mat-option>
+        @for (location of locations(); track location.id) {
+          <mat-option [value]="location.id">{{ location.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+</app-filter-panel>
+
+@if (loading()) {
+  <app-skeleton-loader [rows]="6" />
+} @else if (failed()) {
+  <app-error-state title="Could not load inventory" [message]="errorMessage()" (retry)="load()" />
+} @else if (dashboard(); as board) {
+  <section class="inv-kpis">
+    <article class="inv-kpi">
+      <span>Inventory value</span>
+      <strong>{{ money(board.inventoryValue) }}</strong>
+      <small>{{ label(board.valuationMethod) }} cost</small>
+    </article>
+    <article class="inv-kpi is-ok">
+      <span>In stock</span>
+      <strong>{{ board.inStock }}</strong>
+      <small>{{ qty(board.unitsAvailable) }} available</small>
+    </article>
+    <article class="inv-kpi is-warning">
+      <span>Low stock</span>
+      <strong>{{ board.lowStock }}</strong>
+      <small><a routerLink="/inventory/low-stock">Review shortages</a></small>
+    </article>
+    <article class="inv-kpi is-danger">
+      <span>Out of stock</span>
+      <strong>{{ board.outOfStock }}</strong>
+      <small>{{ board.overStock }} over maximum</small>
+    </article>
+  </section>
+
+  <section class="inv-grid">
+    <article class="inv-panel">
+      <h2>Stock health</h2>
+      <p>{{ board.healthPercent }}% of tracked products are comfortably in stock.</p>
+      <div class="inv-health" aria-hidden="true">
+        <span [style.width.%]="board.healthPercent"></span>
+      </div>
+      <p>{{ board.skuCount }} stocked products · {{ qty(board.unitsOnHand) }} on hand · {{ qty(board.unitsReserved) }} reserved</p>
+      <h2>Movement, last 30 days</h2>
+      @for (row of board.movement; track row.transactionType) {
+        <div class="inv-move">
+          <span>{{ label(row.transactionType) }}</span>
+          <div class="inv-bar"><span [style.width.%]="(row.movementCount / maxMoves()) * 100"></span></div>
+          <strong>{{ row.movementCount }}</strong>
+        </div>
+      } @empty {
+        <p>No inventory movement in the last 30 days.</p>
+      }
+    </article>
+    <article class="inv-panel">
+      <div class="inv-split">
+        <div>
+          <h2>Low stock</h2>
+          @for (row of board.lowStockAlerts; track row.productId) {
+            <a class="inv-alert" [routerLink]="['/inventory/products', row.productId]">
+              <span>
+                <strong>{{ row.productName }}</strong>
+                <small>{{ row.productCode }}</small>
+              </span>
+              <span>Short {{ qty(row.shortageQuantity) }}</span>
+            </a>
+          } @empty {
+            <p>No products are below their reorder level.</p>
+          }
+        </div>
+        <div>
+          <h2>Out of stock</h2>
+          @for (row of board.outOfStockAlerts; track row.productId) {
+            <a class="inv-alert" [routerLink]="['/inventory/products', row.productId]">
+              <span>
+                <strong>{{ row.productName }}</strong>
+                <small>Last sale {{ date(row.lastSale) }}</small>
+              </span>
+              <span>Reorder {{ qty(row.reorderLevel) }}</span>
+            </a>
+          } @empty {
+            <p>Every tracked product has quantity on hand.</p>
+          }
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="bf-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Product</th>
+          <th>Type</th>
+          <th>Reference</th>
+          <th class="end">In</th>
+          <th class="end">Out</th>
+          <th class="end">Balance</th>
+          <th>User</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of board.recentMovements; track row.id) {
+          <tr>
+            <td data-label="Date">{{ date(row.date) }}</td>
+            <td data-label="Product">
+              <a [routerLink]="['/inventory/products', row.productId]">{{ row.productName }}</a>
+              <button type="button" class="row-details" aria-expanded="false">
+                <span class="when-closed">Details</span>
+                <span class="when-open">Hide</span>
+              </button>
+            </td>
+            <td data-label="Type"><app-status-badge [status]="row.transactionType" /></td>
+            <td data-detail data-label="Reference">{{ row.referenceNumber }}</td>
+            <td data-detail class="end" data-label="In">{{ qty(row.quantityIn) }}</td>
+            <td data-detail class="end" data-label="Out">{{ qty(row.quantityOut) }}</td>
+            <td class="end" data-label="Balance">{{ qty(row.runningBalance) }}</td>
+            <td data-detail data-label="User">{{ row.user }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="8">No movements yet. Sales, purchases, and adjustments will appear here.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+}

@@ -1,0 +1,70 @@
+<app-page-header title="Stock ledger" subtitle="Every movement: what came in, what went out, and the balance after it." />
+<app-inventory-nav />
+<app-filter-panel title="Filters">
+  <div class="filters">
+    <app-search-bar placeholder="Search product, reference, or remarks" (queryChange)="onSearch($event)" />
+    <app-iso-date-field label="From" subscriptSizing="dynamic" [formControl]="dateFrom" (committed)="applyFilters()" />
+    <app-iso-date-field label="To" subscriptSizing="dynamic" [formControl]="dateTo" (committed)="applyFilters()" />
+    <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+      <mat-label>Transaction type</mat-label>
+      <mat-select [value]="transactionType()" (selectionChange)="onType($event.value)">
+        <mat-option value="">All types</mat-option>
+        @for (type of types; track type) {
+          <mat-option [value]="type">{{ label(type) }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+      <mat-label>Location</mat-label>
+      <mat-select [value]="locationId() ?? ''" (selectionChange)="onLocation($event.value)">
+        <mat-option value="">All locations</mat-option>
+        @for (location of locations(); track location.id) {
+          <mat-option [value]="location.id">{{ location.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+</app-filter-panel>
+<div class="bf-table-wrap">
+  @if (loading()) {
+    <app-skeleton-loader layout="table" [rows]="8" />
+  } @else if (failed()) {
+    <app-error-state title="Could not load the ledger" [message]="errorMessage()" (retry)="load()" />
+  } @else if (rows().length === 0) {
+    <app-empty-state title="No movements" message="No stock movements match this filter. Widen the dates or clear the product filter to see the ledger." />
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th><button type="button" class="sort" (click)="toggleSort('date')">Date <mat-icon>{{ sortMark('date') }}</mat-icon></button></th>
+          <th>Product</th>
+          <th><button type="button" class="sort" (click)="toggleSort('transactionType')">Transaction <mat-icon>{{ sortMark('transactionType') }}</mat-icon></button></th>
+          <th>Reference</th>
+          <th class="end">In</th>
+          <th class="end">Out</th>
+          <th class="end"><button type="button" class="sort" (click)="toggleSort('runningBalance')">Balance <mat-icon>{{ sortMark('runningBalance') }}</mat-icon></button></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.id) {
+          <tr>
+            <td data-label="Date">{{ date(row.date) }}</td>
+            <td data-label="Product">
+              <a [routerLink]="['/inventory/products', row.productId]">{{ row.productName }}</a>
+              <small>{{ row.productCode }} · {{ row.locationName }}</small>
+            </td>
+            <td data-label="Transaction"><app-status-badge [status]="row.transactionType" /></td>
+            <td data-label="Reference">
+              {{ row.referenceNumber }}
+              <small>{{ row.user }}@if (row.remarks) { · {{ row.remarks }} }</small>
+            </td>
+            <td class="end" data-label="In">{{ qty(row.quantityIn) }}</td>
+            <td class="end" data-label="Out">{{ qty(row.quantityOut) }}</td>
+            <td class="end" data-label="Balance">{{ qty(row.runningBalance) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="onPage($event)" />
+  }
+</div>

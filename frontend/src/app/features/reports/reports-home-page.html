@@ -1,0 +1,11 @@
+<app-page-header title="Reports" subtitle="Operational and financial reports calculated on the server." />
+
+<div class="report-links">
+  @for (report of reports; track report.path) {
+    <a [routerLink]="report.path">
+      <mat-icon>{{ report.icon }}</mat-icon>
+      <strong>{{ report.title }}</strong>
+      <span>{{ report.detail }}</span>
+    </a>
+  }
+</div>

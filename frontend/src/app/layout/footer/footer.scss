@@ -1,0 +1,16 @@
+.bf-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--bf-space-3);
+  padding: var(--bf-space-2) var(--bf-space-6) var(--bf-space-3);
+  color: var(--bf-text-muted);
+  font-size: var(--bf-text-label-size);
+}
+
+@media (max-width: 720px) {
+  .bf-footer {
+    padding: 8px 16px 12px;
+    flex-direction: column;
+    gap: 2px;
+  }
+}

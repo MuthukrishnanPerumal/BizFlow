@@ -1,0 +1,31 @@
+<div class="smart">
+  <div class="primary">
+    <ng-content select="[data-primary]" />
+  </div>
+
+  @if (advanced()) {
+    <div class="advanced" [hidden]="!open()">
+      <ng-content select="[data-advanced]" />
+    </div>
+  }
+
+  @if (advanced()) {
+    <button type="button" class="more" (click)="toggle()" [attr.aria-expanded]="open()">
+      <mat-icon aria-hidden="true">{{ open() ? 'expand_less' : 'tune' }}</mat-icon>
+      {{ open() ? 'Hide extra filters' : 'More filters' }}
+    </button>
+  }
+
+  @if (chips().length > 0) {
+    <div class="chips" aria-label="Active filters">
+      @for (chip of chips(); track chip.id) {
+        <button type="button" class="chip" (click)="remove.emit(chip.id)">
+          {{ chip.label }}
+          <mat-icon aria-hidden="true">close</mat-icon>
+          <span class="bf-sr">Remove {{ chip.label }}</span>
+        </button>
+      }
+      <button type="button" class="clear" (click)="clear.emit()">Clear all</button>
+    </div>
+  }
+</div>
