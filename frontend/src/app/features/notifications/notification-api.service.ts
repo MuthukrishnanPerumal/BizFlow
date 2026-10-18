@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { SKIP_ERROR_NOTIFICATION } from '../../core/http/http-context';
+import { SKIP_ERROR_NOTIFICATION, SKIP_LOADING_INDICATOR } from '../../core/http/http-context';
 import { unwrapData } from '../../core/http/unwrap';
 import { ApiResponse } from '../../core/models/api-response.model';
 import { AppNotification, NotificationPage, NotificationSummary } from './notification.model';
@@ -42,5 +42,7 @@ export class NotificationApi {
 }
 
 function quiet(): HttpContext {
-  return new HttpContext().set(SKIP_ERROR_NOTIFICATION, true);
+  return new HttpContext()
+    .set(SKIP_ERROR_NOTIFICATION, true)
+    .set(SKIP_LOADING_INDICATOR, true);
 }

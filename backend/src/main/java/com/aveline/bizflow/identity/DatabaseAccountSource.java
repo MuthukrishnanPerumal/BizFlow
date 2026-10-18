@@ -30,9 +30,22 @@ public class DatabaseAccountSource implements AuthenticatedAccountSource {
     @Override
     @Transactional(readOnly = true)
     public AuthenticatedAccount load(JwtPrincipal principal) {
+        assertNotRevoked(principal);
+        return loadAccess(principal);
+    }
+
+    @Transactional(readOnly = true)
+    AuthenticatedAccount loadWithoutRevocationCheck(JwtPrincipal principal) {
+        return loadAccess(principal);
+    }
+
+    void assertNotRevoked(JwtPrincipal principal) {
         if (principal.tokenId() != null && revokedTokenRepository.existsById(principal.tokenId())) {
             throw new ClientAuthenticationException(AuthMessages.SESSION_ENDED);
         }
+    }
+
+    private AuthenticatedAccount loadAccess(JwtPrincipal principal) {
         AppUser user = userRepository.findWithAccessByUsername(principal.username())
                 .orElseThrow(() -> new ClientAuthenticationException(AuthMessages.REQUIRED));
         if (user.getSessionVersion() != principal.sessionVersion()) {

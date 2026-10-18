@@ -5,6 +5,7 @@ import com.aveline.bizflow.system.SettingKeys;
 import com.aveline.bizflow.system.dto.CommercialDefaultsResponse;
 import com.aveline.bizflow.system.dto.SystemHealthResponse;
 import com.aveline.bizflow.system.dto.SystemInfoResponse;
+import com.aveline.bizflow.system.persistence.PlatformSetting;
 import com.aveline.bizflow.system.persistence.PlatformSettingRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.flywaydb.core.Flyway;
@@ -20,14 +21,23 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Clock;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
 public class SystemQueryService {
 
-    static final String DISPLAY_NAME_KEY = SettingKeys.DISPLAY_NAME;
-    static final String CURRENCY_KEY = SettingKeys.CURRENCY;
-    static final String LOCALE_KEY = SettingKeys.LOCALE;
+    private static final List<String> PREFERENCE_KEYS = List.of(
+            SettingKeys.DISPLAY_NAME,
+            SettingKeys.CURRENCY,
+            SettingKeys.LOCALE,
+            SettingKeys.DATE_FORMAT,
+            SettingKeys.DECIMAL_PRECISION,
+            SettingKeys.ROUNDING_RULE,
+            SettingKeys.DEFAULT_PAYMENT_METHOD);
 
     private final DataSource dataSource;
     private final Flyway flyway;
@@ -35,6 +45,8 @@ public class SystemQueryService {
     private final Environment environment;
     private final BuildProperties buildProperties;
     private final Clock clock;
+    /** Flyway schema history is immutable at runtime; avoid flyway.info() on every health probe. */
+    private final AtomicInteger cachedAppliedMigrations = new AtomicInteger(-1);
 
     public SystemQueryService(
             DataSource dataSource,
@@ -76,21 +88,41 @@ public class SystemQueryService {
 
     @Transactional(readOnly = true)
     public CommercialDefaultsResponse preferences() {
+        Map<String, String> values = loadPreferenceValues();
         return new CommercialDefaultsResponse(
-                requiredSetting(DISPLAY_NAME_KEY),
-                requiredSetting(CURRENCY_KEY),
-                requiredSetting(LOCALE_KEY),
-                settingOrDefault(SettingKeys.DATE_FORMAT, "medium"),
-                precision(settingOrDefault(SettingKeys.DECIMAL_PRECISION, "2")),
-                settingOrDefault(SettingKeys.ROUNDING_RULE, "NONE"),
-                settingOrDefault(SettingKeys.DEFAULT_PAYMENT_METHOD, "CASH"));
+                required(values, SettingKeys.DISPLAY_NAME),
+                required(values, SettingKeys.CURRENCY),
+                required(values, SettingKeys.LOCALE),
+                orDefault(values, SettingKeys.DATE_FORMAT, "medium"),
+                precision(orDefault(values, SettingKeys.DECIMAL_PRECISION, "2")),
+                orDefault(values, SettingKeys.ROUNDING_RULE, "NONE"),
+                orDefault(values, SettingKeys.DEFAULT_PAYMENT_METHOD, "CASH"));
     }
 
-    private String settingOrDefault(String key, String fallback) {
-        return platformSettingRepository.findBySettingKey(key)
-                .map(setting -> setting.getSettingValue())
-                .filter(value -> value != null && !value.isBlank())
-                .orElse(fallback);
+    private Map<String, String> loadPreferenceValues() {
+        List<PlatformSetting> rows = platformSettingRepository.findBySettingKeyIn(PREFERENCE_KEYS);
+        Map<String, String> values = new HashMap<>(PREFERENCE_KEYS.size());
+        for (PlatformSetting setting : rows) {
+            values.put(setting.getSettingKey(), setting.getSettingValue());
+        }
+        return values;
+    }
+
+    private static String orDefault(Map<String, String> values, String key, String fallback) {
+        String value = values.get(key);
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        return value;
+    }
+
+    private String required(Map<String, String> values, String key) {
+        String value = values.get(key);
+        if (value == null || value.isBlank()) {
+            log.warn("Missing platform setting key={}", key);
+            throw new ResourceNotFoundException("Required commercial defaults are not configured");
+        }
+        return value;
     }
 
     private int precision(String raw) {
@@ -102,21 +134,16 @@ public class SystemQueryService {
         }
     }
 
-    private String requiredSetting(String key) {
-        return platformSettingRepository.findBySettingKey(key)
-                .map(setting -> setting.getSettingValue())
-                .filter(value -> value != null && !value.isBlank())
-                .orElseThrow(() -> {
-                    log.warn("Missing platform setting key={}", key);
-                    return new ResourceNotFoundException("Required commercial defaults are not configured");
-                });
-    }
-
     private int appliedMigrations() {
-        MigrationInfo[] applied = flyway.info().applied();
-        if (applied == null) {
-            return 0;
+        int cached = cachedAppliedMigrations.get();
+        if (cached >= 0) {
+            return cached;
         }
-        return (int) Arrays.stream(applied).filter(migration -> migration != null).count();
+        MigrationInfo[] applied = flyway.info().applied();
+        int count = applied == null
+                ? 0
+                : (int) Arrays.stream(applied).filter(migration -> migration != null).count();
+        cachedAppliedMigrations.compareAndSet(-1, count);
+        return cachedAppliedMigrations.get() >= 0 ? cachedAppliedMigrations.get() : count;
     }
 }

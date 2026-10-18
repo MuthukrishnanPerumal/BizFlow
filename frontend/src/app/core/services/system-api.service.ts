@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { SKIP_ERROR_NOTIFICATION } from '../http/http-context';
+import { SKIP_ERROR_NOTIFICATION, SKIP_LOADING_INDICATOR } from '../http/http-context';
 import { ApiResponse } from '../models/api-response.model';
 import { CommercialDefaults, SystemHealth, SystemInfo } from '../models/system.model';
 
@@ -24,7 +24,9 @@ export class SystemApi {
   }
 
   private get<T>(path: string): Observable<T> {
-    const context = new HttpContext().set(SKIP_ERROR_NOTIFICATION, true);
+    const context = new HttpContext()
+      .set(SKIP_ERROR_NOTIFICATION, true)
+      .set(SKIP_LOADING_INDICATOR, true);
     return this.http
       .get<ApiResponse<T>>(`${environment.apiUrl}${path}`, { context })
       .pipe(map((response) => this.unwrap(response)));
