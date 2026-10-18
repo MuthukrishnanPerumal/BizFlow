@@ -14,7 +14,6 @@ import org.springframework.boot.info.BuildProperties;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -91,7 +90,10 @@ public class SystemQueryService {
         }
     }
 
-    @Transactional(readOnly = true)
+    /**
+     * Cache lookup stays outside any service-level transaction so hits do not borrow a DB connection.
+     * Misses use Spring Data repository transactions only.
+     */
     public CommercialDefaultsResponse preferences() {
         long now = clock.millis();
         CachedPreferences cached = preferencesCache.get();
