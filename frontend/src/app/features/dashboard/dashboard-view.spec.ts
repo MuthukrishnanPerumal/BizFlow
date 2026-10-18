@@ -97,5 +97,6 @@ function board(): DashboardResponse {
       recentPayments: [],
       recentMovements: [],
     },
+    drafts: { sales: 2, purchases: 1 },
   };
 }

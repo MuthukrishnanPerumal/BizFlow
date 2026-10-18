@@ -22,6 +22,8 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -114,17 +116,112 @@ public class ReportingReadModel {
     }
 
     public StockSnapshot stock(LocalDate to, boolean applyReserved) {
+        return stockBoard(to, applyReserved, 0, 0).snapshot();
+    }
+
+    /**
+     * Loads stock positions once and derives KPI snapshot, category chart, and alerts.
+     * Replaces up to four separate full {@code stock_ledger} rollups per dashboard request.
+     */
+    public StockBoard stockBoard(LocalDate to, boolean applyReserved, int categoryLimit, int alertLimit) {
         String sql = """
-                SELECT
-                  COALESCE(SUM(stock_value), 0) AS stock_value,
-                  COALESCE(SUM(available > 0 AND reorder_level > 0 AND available <= reorder_level), 0) AS low_stock,
-                  COALESCE(SUM(available <= 0), 0) AS out_of_stock
+                SELECT product_id, product_code, product_name, category_id, category_name,
+                       reorder_level, available, stock_value
                 FROM (%s) stock_position
                 """.formatted(stockSql());
-        return jdbc.queryForObject(sql, stockParams(to, applyReserved), (rs, row) -> new StockSnapshot(
-                money(rs, "stock_value"),
-                rs.getLong("low_stock"),
-                rs.getLong("out_of_stock")));
+        List<StockPositionRow> rows = jdbc.query(sql, stockParams(to, applyReserved), (rs, row) -> new StockPositionRow(
+                rs.getLong("product_id"),
+                rs.getString("product_name"),
+                rs.getString("category_name"),
+                money(rs, "available"),
+                money(rs, "reorder_level"),
+                money(rs, "stock_value")));
+
+        BigDecimal stockValue = ProfitMath.ZERO;
+        long lowStock = 0;
+        long outOfStock = 0;
+        Map<String, BigDecimal> categoryTotals = new HashMap<>();
+        List<StockAlert> lowCandidates = new ArrayList<>();
+        List<StockAlert> outCandidates = new ArrayList<>();
+
+        for (StockPositionRow position : rows) {
+            stockValue = stockValue.add(position.stockValue());
+            boolean out = position.available().compareTo(ProfitMath.ZERO) <= 0;
+            boolean low = !out
+                    && position.reorderLevel().compareTo(ProfitMath.ZERO) > 0
+                    && position.available().compareTo(position.reorderLevel()) <= 0;
+            if (out) {
+                outOfStock++;
+                if (alertLimit > 0) {
+                    outCandidates.add(new StockAlert(
+                            position.productId(),
+                            position.productName(),
+                            position.categoryName(),
+                            position.available(),
+                            position.reorderLevel()));
+                }
+            } else if (low) {
+                lowStock++;
+                if (alertLimit > 0) {
+                    lowCandidates.add(new StockAlert(
+                            position.productId(),
+                            position.productName(),
+                            position.categoryName(),
+                            position.available(),
+                            position.reorderLevel()));
+                }
+            }
+            if (categoryLimit > 0 && position.stockValue().signum() != 0) {
+                categoryTotals.merge(position.categoryName(), position.stockValue(), BigDecimal::add);
+            }
+        }
+
+        List<AmountPoint> byCategory = categoryLimit <= 0
+                ? List.of()
+                : categoryTotals.entrySet().stream()
+                        .sorted((left, right) -> right.getValue().compareTo(left.getValue()))
+                        .limit(categoryLimit)
+                        .map(entry -> new AmountPoint(entry.getKey(), entry.getKey(), entry.getValue()))
+                        .toList();
+
+        List<StockAlert> lowAlerts = alertLimit <= 0
+                ? List.of()
+                : lowCandidates.stream()
+                        .sorted(Comparator.comparing(StockAlert::onHand).thenComparing(StockAlert::product))
+                        .limit(alertLimit)
+                        .toList();
+        List<StockAlert> outAlerts = alertLimit <= 0
+                ? List.of()
+                : outCandidates.stream()
+                        .sorted(Comparator.comparing(StockAlert::product))
+                        .limit(alertLimit)
+                        .toList();
+
+        return new StockBoard(
+                new StockSnapshot(stockValue, lowStock, outOfStock),
+                byCategory,
+                lowAlerts,
+                outAlerts);
+    }
+
+    public long countDraftSales(LocalDate from, LocalDate to) {
+        String sql = """
+                SELECT COUNT(*) FROM sales
+                WHERE is_deleted = 0 AND status = 'DRAFT'
+                  AND invoice_date BETWEEN :from AND :to
+                """;
+        Long count = jdbc.queryForObject(sql, dates(from, to), Long.class);
+        return count == null ? 0L : count;
+    }
+
+    public long countDraftPurchases(LocalDate from, LocalDate to) {
+        String sql = """
+                SELECT COUNT(*) FROM purchases
+                WHERE is_deleted = 0 AND status = 'DRAFT'
+                  AND purchase_date BETWEEN :from AND :to
+                """;
+        Long count = jdbc.queryForObject(sql, dates(from, to), Long.class);
+        return count == null ? 0L : count;
     }
 
     public Map<String, BigDecimal> salesByBucket(LocalDate from, LocalDate to, ReportRanges.Grain grain) {
@@ -527,6 +624,64 @@ public class ReportingReadModel {
 
     public InventoryPage inventory(DocumentQuery query, String sort, int limit, int offset) {
         String grouped = inventoryGrouped();
+        // Window aggregates avoid a second full product×ledger scan for totals.
+        String pageSql = """
+                SELECT product_id, product, opening_stock, purchase_qty, purchase_return_qty,
+                       sales_qty, sales_return_qty, adjustment_qty,
+                       (opening_stock + purchase_qty - purchase_return_qty - sales_qty + sales_return_qty + adjustment_qty) AS closing_stock,
+                       stock_value,
+                       COUNT(*) OVER() AS row_count,
+                       COALESCE(SUM(opening_stock) OVER(), 0) AS total_opening_stock,
+                       COALESCE(SUM(purchase_qty) OVER(), 0) AS total_purchase_qty,
+                       COALESCE(SUM(purchase_return_qty) OVER(), 0) AS total_purchase_return_qty,
+                       COALESCE(SUM(sales_qty) OVER(), 0) AS total_sales_qty,
+                       COALESCE(SUM(sales_return_qty) OVER(), 0) AS total_sales_return_qty,
+                       COALESCE(SUM(adjustment_qty) OVER(), 0) AS total_adjustment_qty,
+                       COALESCE(SUM(stock_value) OVER(), 0) AS total_stock_value
+                FROM (%s) inventory_report
+                ORDER BY %s
+                LIMIT %d OFFSET %d
+                """.formatted(grouped, order(INVENTORY_SORT, sort, "product", "product_id"), limit, offset);
+        final long[] count = {0};
+        final InventoryTotals[] totalsHolder = {null};
+        List<InventoryRow> rows = jdbc.query(pageSql, documentParams(query), (rs, row) -> {
+            if (totalsHolder[0] == null) {
+                count[0] = rs.getLong("row_count");
+                BigDecimal opening = money(rs, "total_opening_stock");
+                BigDecimal purchase = money(rs, "total_purchase_qty");
+                BigDecimal purchaseReturn = money(rs, "total_purchase_return_qty");
+                BigDecimal sales = money(rs, "total_sales_qty");
+                BigDecimal salesReturn = money(rs, "total_sales_return_qty");
+                BigDecimal adjustment = money(rs, "total_adjustment_qty");
+                totalsHolder[0] = new InventoryTotals(
+                        opening,
+                        purchase,
+                        purchaseReturn,
+                        sales,
+                        salesReturn,
+                        adjustment,
+                        ProfitMath.closingStock(opening, purchase, purchaseReturn, sales, salesReturn, adjustment),
+                        money(rs, "total_stock_value"));
+            }
+            return new InventoryRow(
+                    rs.getLong("product_id"),
+                    rs.getString("product"),
+                    money(rs, "opening_stock"),
+                    money(rs, "purchase_qty"),
+                    money(rs, "purchase_return_qty"),
+                    money(rs, "sales_qty"),
+                    money(rs, "sales_return_qty"),
+                    money(rs, "adjustment_qty"),
+                    money(rs, "closing_stock"),
+                    money(rs, "stock_value"));
+        });
+        if (!rows.isEmpty()) {
+            return new InventoryPage(rows, totalsHolder[0] == null ? emptyInventory() : totalsHolder[0], count[0]);
+        }
+        if (offset <= 0) {
+            return new InventoryPage(rows, emptyInventory(), 0);
+        }
+        // High offset with no page rows: still need accurate totals/count.
         String totalsSql = """
                 SELECT
                   COUNT(*) AS row_count,
@@ -539,9 +694,9 @@ public class ReportingReadModel {
                   COALESCE(SUM(stock_value), 0) AS stock_value
                 FROM (%s) inventory_report
                 """.formatted(grouped);
-        final long[] count = {0};
+        final long[] fallbackCount = {0};
         InventoryTotals totals = jdbc.queryForObject(totalsSql, documentParams(query), (rs, row) -> {
-            count[0] = rs.getLong("row_count");
+            fallbackCount[0] = rs.getLong("row_count");
             BigDecimal opening = money(rs, "opening_stock");
             BigDecimal purchase = money(rs, "purchase_qty");
             BigDecimal purchaseReturn = money(rs, "purchase_return_qty");
@@ -558,27 +713,7 @@ public class ReportingReadModel {
                     ProfitMath.closingStock(opening, purchase, purchaseReturn, sales, salesReturn, adjustment),
                     money(rs, "stock_value"));
         });
-        String pageSql = """
-                SELECT product_id, product, opening_stock, purchase_qty, purchase_return_qty,
-                       sales_qty, sales_return_qty, adjustment_qty,
-                       (opening_stock + purchase_qty - purchase_return_qty - sales_qty + sales_return_qty + adjustment_qty) AS closing_stock,
-                       stock_value
-                FROM (%s) inventory_report
-                ORDER BY %s
-                LIMIT %d OFFSET %d
-                """.formatted(grouped, order(INVENTORY_SORT, sort, "product", "product_id"), limit, offset);
-        List<InventoryRow> rows = jdbc.query(pageSql, documentParams(query), (rs, row) -> new InventoryRow(
-                rs.getLong("product_id"),
-                rs.getString("product"),
-                money(rs, "opening_stock"),
-                money(rs, "purchase_qty"),
-                money(rs, "purchase_return_qty"),
-                money(rs, "sales_qty"),
-                money(rs, "sales_return_qty"),
-                money(rs, "adjustment_qty"),
-                money(rs, "closing_stock"),
-                money(rs, "stock_value")));
-        return new InventoryPage(rows, totals == null ? emptyInventory() : totals, count[0]);
+        return new InventoryPage(rows, totals == null ? emptyInventory() : totals, fallbackCount[0]);
     }
 
     private String salesFrom(DocumentQuery query) {
@@ -822,6 +957,22 @@ public class ReportingReadModel {
     }
 
     public record StockSnapshot(BigDecimal stockValue, long lowStock, long outOfStock) {
+    }
+
+    public record StockBoard(
+            StockSnapshot snapshot,
+            List<AmountPoint> byCategory,
+            List<StockAlert> lowStock,
+            List<StockAlert> outOfStock) {
+    }
+
+    private record StockPositionRow(
+            long productId,
+            String productName,
+            String categoryName,
+            BigDecimal available,
+            BigDecimal reorderLevel,
+            BigDecimal stockValue) {
     }
 
     public record CostParts(BigDecimal issued, BigDecimal restored) {

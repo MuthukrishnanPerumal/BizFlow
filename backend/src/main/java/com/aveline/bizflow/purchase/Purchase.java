@@ -19,6 +19,7 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
@@ -95,6 +96,7 @@ public class Purchase extends AuditableEntity {
 
     @OneToMany(mappedBy = "purchase", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("lineNumber asc")
+    @BatchSize(size = 25)
     private final List<PurchaseItem> items = new ArrayList<>();
 
     static Purchase draft(String purchaseNumber) {

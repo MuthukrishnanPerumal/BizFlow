@@ -121,6 +121,11 @@ export interface StockMovement {
   amount: number;
 }
 
+export interface DraftCounts {
+  sales: number;
+  purchases: number;
+}
+
 export interface DashboardResponse {
   period: PeriodView;
   kpis: KpiView;
@@ -145,6 +150,7 @@ export interface DashboardResponse {
     recentPayments: RecentPayment[];
     recentMovements: StockMovement[];
   };
+  drafts: DraftCounts;
 }
 
 export interface ReportPageResult<T> {

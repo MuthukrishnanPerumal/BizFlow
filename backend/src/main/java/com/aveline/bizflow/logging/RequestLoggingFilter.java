@@ -1,5 +1,6 @@
 package com.aveline.bizflow.logging;
 
+import com.aveline.bizflow.config.PerformanceProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,6 +28,12 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             "/api/v1/system/health",
             "/api/v1/system/info");
 
+    private final long slowRequestMs;
+
+    public RequestLoggingFilter(PerformanceProperties performanceProperties) {
+        this.slowRequestMs = performanceProperties.slowRequestMs();
+    }
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -39,15 +46,27 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
             String path = request.getRequestURI();
             Object actor = request.getAttribute(RequestAttributes.ACTOR);
-            if (QUIET_PATHS.contains(path)) {
+            String actorLabel = actor == null ? "anonymous" : String.valueOf(actor);
+            String correlationId = MDC.get(RequestAttributes.CORRELATION_ID);
+            if (durationMs >= slowRequestMs && !QUIET_PATHS.contains(path)) {
+                log.warn(
+                        "slow_http_request method={} path={} status={} durationMs={} thresholdMs={} actor={} correlationId={}",
+                        request.getMethod(),
+                        path,
+                        response.getStatus(),
+                        durationMs,
+                        slowRequestMs,
+                        actorLabel,
+                        correlationId);
+            } else if (QUIET_PATHS.contains(path)) {
                 log.debug(
                         "http_request method={} path={} status={} durationMs={} actor={} correlationId={}",
                         request.getMethod(),
                         path,
                         response.getStatus(),
                         durationMs,
-                        actor == null ? "anonymous" : actor,
-                        MDC.get(RequestAttributes.CORRELATION_ID));
+                        actorLabel,
+                        correlationId);
             } else {
                 log.info(
                         "http_request method={} path={} status={} durationMs={} actor={} correlationId={}",
@@ -55,8 +74,8 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                         path,
                         response.getStatus(),
                         durationMs,
-                        actor == null ? "anonymous" : actor,
-                        MDC.get(RequestAttributes.CORRELATION_ID));
+                        actorLabel,
+                        correlationId);
             }
         }
     }

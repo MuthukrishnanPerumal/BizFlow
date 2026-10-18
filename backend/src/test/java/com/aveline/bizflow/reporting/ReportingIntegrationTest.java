@@ -70,7 +70,9 @@ class ReportingIntegrationTest {
                 .andExpect(jsonPath("$.data.statement.revenue").value(0))
                 .andExpect(jsonPath("$.data.widgets.recentSales", hasSize(0)))
                 .andExpect(jsonPath("$.data.widgets.recentPurchases", hasSize(0)))
-                .andExpect(jsonPath("$.data.charts.salesByCategory", hasSize(0)));
+                .andExpect(jsonPath("$.data.charts.salesByCategory", hasSize(0)))
+                .andExpect(jsonPath("$.data.drafts.sales").value(0))
+                .andExpect(jsonPath("$.data.drafts.purchases").value(0));
         mockMvc.perform(get("/api/v1/reports/sales")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin)
                         .param("preset", "CUSTOM")
@@ -376,11 +378,7 @@ class ReportingIntegrationTest {
                         .content("{\"code\":\"RB" + mark + "\",\"name\":\"Brand " + mark + "\",\"status\":\"ACTIVE\"}"))
                 .andExpect(status().isCreated())
                 .andReturn());
-        Number unitId = JsonPath.read(mockMvc.perform(get("/api/v1/units")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                        .param("search", "PCS"))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString(), "$.data.items[0].id");
+        Number unitId = resolvePcsUnitId(token);
         String productCode = "RPT-" + mark;
         Number productId = idOf(mockMvc.perform(post("/api/v1/products")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -515,6 +513,26 @@ class ReportingIntegrationTest {
 
     private Number idOf(MvcResult result) throws Exception {
         return JsonPath.read(result.getResponse().getContentAsString(), "$.data.id");
+    }
+
+    private Number resolvePcsUnitId(String token) throws Exception {
+        MvcResult listed = mockMvc.perform(get("/api/v1/units")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .param("search", "PCS"))
+                .andExpect(status().isOk())
+                .andReturn();
+        Integer total = JsonPath.read(listed.getResponse().getContentAsString(), "$.data.totalElements");
+        if (total != null && total > 0) {
+            return JsonPath.read(listed.getResponse().getContentAsString(), "$.data.items[0].id");
+        }
+        return idOf(mockMvc.perform(post("/api/v1/units")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Pieces","shortName":"PCS","decimalAllowed":false,"status":"ACTIVE"}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn());
     }
 
     private String adminToken() throws Exception {

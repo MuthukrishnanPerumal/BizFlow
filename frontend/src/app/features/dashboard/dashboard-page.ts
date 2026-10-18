@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
-import { EMPTY, Subject, catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { EMPTY, Subject, catchError, switchMap } from 'rxjs';
 
 import { AuthSession } from '../../core/auth/auth-session.service';
 import { readApiError } from '../../core/utils/http-error.util';
@@ -167,9 +167,12 @@ export class DashboardPage {
         switchMap(() => this.fetch()),
         takeUntilDestroyed(inject(DestroyRef)),
       )
-      .subscribe((result) => {
-        this.data.set(result.board);
-        this.drafts.set({ sales: result.salesDrafts, purchases: result.purchaseDrafts });
+      .subscribe((board) => {
+        this.data.set(board);
+        this.drafts.set({
+          sales: board.drafts?.sales ?? null,
+          purchases: board.drafts?.purchases ?? null,
+        });
         this.loading.set(false);
       });
     if (this.allowed()) {
@@ -254,11 +257,7 @@ export class DashboardPage {
     this.loading.set(true);
     this.failed.set(false);
     const query: PeriodQuery = { preset: this.preset(), from: this.from(), to: this.to() };
-    return forkJoin({
-      board: this.api.dashboard(query),
-      salesDrafts: this.draftCount('sales', query),
-      purchaseDrafts: this.draftCount('purchases', query),
-    }).pipe(
+    return this.api.dashboard(query).pipe(
       catchError((error: unknown) => {
         this.failed.set(true);
         this.errorMessage.set(readApiError(error));
@@ -266,14 +265,5 @@ export class DashboardPage {
         return EMPTY;
       }),
     );
-  }
-
-  private draftCount(kind: 'sales' | 'purchases', query: PeriodQuery) {
-    return this.api
-      .report(kind, query, { search: '', scope: 'DRAFT', page: 0, size: 1, sort: 'date,desc' })
-      .pipe(
-        map((page) => page.totalElements),
-        catchError(() => of(null)),
-      );
   }
 }

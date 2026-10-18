@@ -14,6 +14,7 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
@@ -83,6 +84,7 @@ public class PurchaseItem extends AuditableEntity {
 
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id asc")
+    @BatchSize(size = 25)
     private final List<PurchaseItemSerial> serials = new ArrayList<>();
 
     static PurchaseItem create(

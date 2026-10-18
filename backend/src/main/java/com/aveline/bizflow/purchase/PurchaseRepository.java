@@ -20,8 +20,11 @@ public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
     Optional<Purchase> lockById(@Param("id") Long id);
 
     @Query("""
-            select p from Purchase p
+            select distinct p from Purchase p
             join fetch p.supplier
+            left join fetch p.items i
+            left join fetch i.product pr
+            left join fetch pr.unit
             where p.id = :id
             """)
     Optional<Purchase> findDetailedById(@Param("id") Long id);

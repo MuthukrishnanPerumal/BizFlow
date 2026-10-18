@@ -11,10 +11,12 @@ import com.aveline.bizflow.reporting.ReportingReadModel.CostParts;
 import com.aveline.bizflow.reporting.ReportingReadModel.DocumentQuery;
 import com.aveline.bizflow.reporting.ReportingReadModel.FlowTotals;
 import com.aveline.bizflow.reporting.ReportingReadModel.InventoryPage;
+import com.aveline.bizflow.reporting.ReportingReadModel.StockBoard;
 import com.aveline.bizflow.reporting.ReportingReadModel.StockSnapshot;
 import com.aveline.bizflow.reporting.dto.ReportingDtos.AmountPoint;
 import com.aveline.bizflow.reporting.dto.ReportingDtos.ChartView;
 import com.aveline.bizflow.reporting.dto.ReportingDtos.DashboardResponse;
+import com.aveline.bizflow.reporting.dto.ReportingDtos.DraftCounts;
 import com.aveline.bizflow.reporting.dto.ReportingDtos.InventoryReport;
 import com.aveline.bizflow.reporting.dto.ReportingDtos.KpiView;
 import com.aveline.bizflow.reporting.dto.ReportingDtos.PeriodView;
@@ -67,8 +69,10 @@ public class ReportingQueryService {
         Range range = ReportRanges.resolve(preset, from, to, clock);
         FlowTotals flow = readModel.flow(range.from(), range.to());
         boolean reserved = applyReserved(range.to());
-        StockSnapshot stock = readModel.stock(range.to(), reserved);
+        StockBoard stock = readModel.stockBoard(range.to(), reserved, CHART_LIMIT, WIDGET_LIMIT);
+        StockSnapshot snapshot = stock.snapshot();
         ProfitMath.Statement statement = statement(flow);
+        TrendBundle trends = trendBundle(range);
         return new DashboardResponse(
                 period(range),
                 new KpiView(
@@ -76,15 +80,18 @@ public class ReportingQueryService {
                         ProfitMath.money(flow.grossPurchases()),
                         statement.grossProfit(),
                         statement.netProfit(),
-                        stock.stockValue(),
-                        stock.lowStock(),
-                        stock.outOfStock(),
+                        snapshot.stockValue(),
+                        snapshot.lowStock(),
+                        snapshot.outOfStock(),
                         flow.receivables(),
                         flow.payables(),
                         statement.expenses()),
                 view(statement),
-                charts(range, reserved),
-                widgets(range, reserved));
+                charts(range, stock, trends),
+                widgets(range, stock),
+                new DraftCounts(
+                        readModel.countDraftSales(range.from(), range.to()),
+                        readModel.countDraftPurchases(range.from(), range.to())));
     }
 
     @Transactional(readOnly = true)
@@ -348,19 +355,16 @@ public class ReportingQueryService {
     }
 
     private List<ProfitBucket> profitBuckets(Range range) {
-        Map<String, BigDecimal> sales = readModel.salesByBucket(range.from(), range.to(), range.grain());
-        Map<String, BigDecimal> returns = readModel.salesReturnsByBucket(range.from(), range.to(), range.grain());
-        Map<String, CostParts> costs = readModel.cogsByBucket(range.from(), range.to(), range.grain());
-        Map<String, BigDecimal> expenses = readModel.expensesByBucket(range.from(), range.to(), range.grain());
+        TrendBundle trends = trendBundle(range);
         List<ProfitBucket> buckets = new ArrayList<>();
         for (String key : ReportRanges.buckets(range.from(), range.to(), range.grain())) {
-            CostParts cost = costs.getOrDefault(key, new CostParts(ProfitMath.ZERO, ProfitMath.ZERO));
+            CostParts cost = trends.costs().getOrDefault(key, new CostParts(ProfitMath.ZERO, ProfitMath.ZERO));
             ProfitMath.Statement statement = ProfitMath.statement(
-                    sales.get(key),
-                    returns.get(key),
+                    trends.sales().get(key),
+                    trends.returns().get(key),
                     cost.issued(),
                     cost.restored(),
-                    expenses.get(key));
+                    trends.expenses().get(key));
             if (!ProfitMath.idle(statement)) {
                 buckets.add(new ProfitBucket(key, label(key, range.grain()), statement));
             }
@@ -368,28 +372,37 @@ public class ReportingQueryService {
         return buckets;
     }
 
-    private ChartView charts(Range range, boolean reserved) {
+    private ChartView charts(Range range, StockBoard stock, TrendBundle trends) {
         return new ChartView(
-                trend(readModel.salesByBucket(range.from(), range.to(), range.grain()), range),
-                trend(readModel.purchaseByBucket(range.from(), range.to(), range.grain()), range),
-                profitTrend(range),
+                trend(trends.sales(), range),
+                trend(trends.purchases(), range),
+                profitTrend(range, trends),
                 readModel.salesByCategory(range.from(), range.to(), CHART_LIMIT),
                 readModel.topProducts(range.from(), range.to(), CHART_LIMIT),
                 readModel.purchasesBySupplier(range.from(), range.to(), CHART_LIMIT),
-                readModel.stockByCategory(range.to(), reserved, CHART_LIMIT),
+                stock.byCategory(),
                 readModel.paymentsByMethod(range.from(), range.to()));
     }
 
-    private WidgetView widgets(Range range, boolean reserved) {
+    private WidgetView widgets(Range range, StockBoard stock) {
         return new WidgetView(
                 readModel.recentSales(range.from(), range.to(), WIDGET_LIMIT),
                 readModel.recentPurchases(range.from(), range.to(), WIDGET_LIMIT),
-                readModel.stockAlerts(range.to(), reserved, false, WIDGET_LIMIT),
-                readModel.stockAlerts(range.to(), reserved, true, WIDGET_LIMIT),
+                stock.lowStock(),
+                stock.outOfStock(),
                 readModel.topCustomers(range.from(), range.to(), WIDGET_LIMIT),
                 readModel.topSuppliers(range.from(), range.to(), WIDGET_LIMIT),
                 readModel.recentPayments(range.from(), range.to(), WIDGET_LIMIT),
                 readModel.recentMovements(range.from(), range.to(), WIDGET_LIMIT));
+    }
+
+    private TrendBundle trendBundle(Range range) {
+        return new TrendBundle(
+                readModel.salesByBucket(range.from(), range.to(), range.grain()),
+                readModel.purchaseByBucket(range.from(), range.to(), range.grain()),
+                readModel.salesReturnsByBucket(range.from(), range.to(), range.grain()),
+                readModel.cogsByBucket(range.from(), range.to(), range.grain()),
+                readModel.expensesByBucket(range.from(), range.to(), range.grain()));
     }
 
     private List<AmountPoint> trend(Map<String, BigDecimal> values, Range range) {
@@ -398,15 +411,15 @@ public class ReportingQueryService {
                 .toList();
     }
 
-    private List<ProfitPoint> profitTrend(Range range) {
-        Map<String, BigDecimal> sales = readModel.salesByBucket(range.from(), range.to(), range.grain());
-        Map<String, BigDecimal> returns = readModel.salesReturnsByBucket(range.from(), range.to(), range.grain());
-        Map<String, CostParts> costs = readModel.cogsByBucket(range.from(), range.to(), range.grain());
-        Map<String, BigDecimal> expenses = readModel.expensesByBucket(range.from(), range.to(), range.grain());
+    private List<ProfitPoint> profitTrend(Range range, TrendBundle trends) {
         return ReportRanges.buckets(range.from(), range.to(), range.grain()).stream().map(key -> {
-            CostParts cost = costs.getOrDefault(key, new CostParts(ProfitMath.ZERO, ProfitMath.ZERO));
+            CostParts cost = trends.costs().getOrDefault(key, new CostParts(ProfitMath.ZERO, ProfitMath.ZERO));
             ProfitMath.Statement statement = ProfitMath.statement(
-                    sales.get(key), returns.get(key), cost.issued(), cost.restored(), expenses.get(key));
+                    trends.sales().get(key),
+                    trends.returns().get(key),
+                    cost.issued(),
+                    cost.restored(),
+                    trends.expenses().get(key));
             return new ProfitPoint(
                     key,
                     label(key, range.grain()),
@@ -535,5 +548,13 @@ public class ReportingQueryService {
     }
 
     private record ProfitBucket(String key, String label, ProfitMath.Statement statement) {
+    }
+
+    private record TrendBundle(
+            Map<String, BigDecimal> sales,
+            Map<String, BigDecimal> purchases,
+            Map<String, BigDecimal> returns,
+            Map<String, CostParts> costs,
+            Map<String, BigDecimal> expenses) {
     }
 }

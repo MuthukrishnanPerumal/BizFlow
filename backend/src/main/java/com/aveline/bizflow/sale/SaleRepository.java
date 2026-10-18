@@ -20,8 +20,11 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
     Optional<Sale> lockById(@Param("id") Long id);
 
     @Query("""
-            select s from Sale s
+            select distinct s from Sale s
             join fetch s.customer
+            left join fetch s.items i
+            left join fetch i.product p
+            left join fetch p.unit
             where s.id = :id
             """)
     Optional<Sale> findDetailedById(@Param("id") Long id);

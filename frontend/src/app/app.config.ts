@@ -10,13 +10,17 @@ import { AuthService } from './core/auth/auth.service';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
+import { timingInterceptor } from './core/interceptors/timing.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideAppInitializer(() => inject(AuthService).restore()),
     provideRouter(routes),
-    provideHttpClient(withFetch(), withInterceptors([loadingInterceptor, authInterceptor, errorInterceptor])),
+    provideHttpClient(
+      withFetch(),
+      withInterceptors([loadingInterceptor, authInterceptor, timingInterceptor, errorInterceptor]),
+    ),
     provideNativeDateAdapter(),
     { provide: DateAdapter, useClass: BizDateAdapter },
     { provide: MAT_DATE_LOCALE, useValue: 'en-IN' },

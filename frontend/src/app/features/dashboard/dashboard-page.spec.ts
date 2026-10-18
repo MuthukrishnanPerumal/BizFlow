@@ -13,12 +13,10 @@ import { DashboardPage } from './dashboard-page';
 describe('DashboardPage', () => {
   let allowReports = true;
   const dashboard = vi.fn(() => of(sample()));
-  const report = vi.fn(() => of({ totalElements: 2 }));
 
   beforeEach(async () => {
     allowReports = true;
     dashboard.mockClear();
-    report.mockClear();
     await TestBed.configureTestingModule({
       imports: [DashboardPage],
       providers: [
@@ -29,7 +27,7 @@ describe('DashboardPage', () => {
           useValue: { hasPermission: (permission: string) => (permission === 'REPORT_VIEW' ? allowReports : true) },
         },
         { provide: InboxStore, useValue: { unread: signal(1), items: signal([]) } },
-        { provide: ReportingApi, useValue: { dashboard, report } },
+        { provide: ReportingApi, useValue: { dashboard } },
       ],
     }).compileComponents();
   });
@@ -80,7 +78,7 @@ describe('DashboardPage', () => {
     today.click();
     fixture.detectChanges();
     expect(dashboard).toHaveBeenCalledWith(expect.objectContaining({ preset: 'TODAY' }));
-    expect(report).toHaveBeenCalledWith('sales', expect.objectContaining({ preset: 'TODAY' }), expect.objectContaining({ scope: 'DRAFT', size: 1 }));
+    expect(dashboard).toHaveBeenCalledTimes(2);
   });
 
   it('explains missing report access instead of showing empty numbers', () => {
@@ -145,5 +143,6 @@ function sample(): DashboardResponse {
       recentPayments: [],
       recentMovements: [],
     },
+    drafts: { sales: 2, purchases: 1 },
   };
 }

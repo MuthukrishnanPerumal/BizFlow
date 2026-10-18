@@ -103,12 +103,16 @@ public final class ReportingDtos {
             List<StockMovement> recentMovements) {
     }
 
+    public record DraftCounts(long sales, long purchases) {
+    }
+
     public record DashboardResponse(
             PeriodView period,
             KpiView kpis,
             StatementView statement,
             ChartView charts,
-            WidgetView widgets) {
+            WidgetView widgets,
+            DraftCounts drafts) {
     }
 
     public record SalesRow(
