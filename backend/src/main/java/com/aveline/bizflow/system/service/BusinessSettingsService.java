@@ -54,14 +54,17 @@ public class BusinessSettingsService {
     private final PlatformSettingRepository settingRepository;
     private final AuditRecorder auditRecorder;
     private final AppNotificationService notifications;
+    private final SystemQueryService systemQueryService;
 
     public BusinessSettingsService(
             PlatformSettingRepository settingRepository,
             AuditRecorder auditRecorder,
-            AppNotificationService notifications) {
+            AppNotificationService notifications,
+            SystemQueryService systemQueryService) {
         this.settingRepository = settingRepository;
         this.auditRecorder = auditRecorder;
         this.notifications = notifications;
+        this.systemQueryService = systemQueryService;
     }
 
     @Transactional(readOnly = true)
@@ -174,6 +177,7 @@ public class BusinessSettingsService {
                     json(before),
                     json(after));
             notifications.system("Settings updated", "Business settings were changed.", "settings");
+            systemQueryService.invalidatePreferencesCache();
         }
         return response(loadManaged());
     }

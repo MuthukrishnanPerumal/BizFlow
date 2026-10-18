@@ -20,15 +20,19 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 @Service
 public class SystemQueryService {
+
+    private static final Duration PREFERENCES_TTL = Duration.ofSeconds(60);
 
     private static final List<String> PREFERENCE_KEYS = List.of(
             SettingKeys.DISPLAY_NAME,
@@ -47,6 +51,7 @@ public class SystemQueryService {
     private final Clock clock;
     /** Flyway schema history is immutable at runtime; avoid flyway.info() on every health probe. */
     private final AtomicInteger cachedAppliedMigrations = new AtomicInteger(-1);
+    private final AtomicReference<CachedPreferences> preferencesCache = new AtomicReference<>();
 
     public SystemQueryService(
             DataSource dataSource,
@@ -88,8 +93,13 @@ public class SystemQueryService {
 
     @Transactional(readOnly = true)
     public CommercialDefaultsResponse preferences() {
+        long now = clock.millis();
+        CachedPreferences cached = preferencesCache.get();
+        if (cached != null && cached.expiresAtMillis() > now) {
+            return cached.response();
+        }
         Map<String, String> values = loadPreferenceValues();
-        return new CommercialDefaultsResponse(
+        CommercialDefaultsResponse response = new CommercialDefaultsResponse(
                 required(values, SettingKeys.DISPLAY_NAME),
                 required(values, SettingKeys.CURRENCY),
                 required(values, SettingKeys.LOCALE),
@@ -97,6 +107,13 @@ public class SystemQueryService {
                 precision(orDefault(values, SettingKeys.DECIMAL_PRECISION, "2")),
                 orDefault(values, SettingKeys.ROUNDING_RULE, "NONE"),
                 orDefault(values, SettingKeys.DEFAULT_PAYMENT_METHOD, "CASH"));
+        preferencesCache.set(new CachedPreferences(response, now + PREFERENCES_TTL.toMillis()));
+        return response;
+    }
+
+    /** Call after admin updates commercial defaults so clients see changes before TTL. */
+    public void invalidatePreferencesCache() {
+        preferencesCache.set(null);
     }
 
     private Map<String, String> loadPreferenceValues() {
@@ -145,5 +162,8 @@ public class SystemQueryService {
                 : (int) Arrays.stream(applied).filter(migration -> migration != null).count();
         cachedAppliedMigrations.compareAndSet(-1, count);
         return cachedAppliedMigrations.get() >= 0 ? cachedAppliedMigrations.get() : count;
+    }
+
+    private record CachedPreferences(CommercialDefaultsResponse response, long expiresAtMillis) {
     }
 }
