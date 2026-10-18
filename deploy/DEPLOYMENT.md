@@ -5,10 +5,18 @@
 | Component | Status | URL |
 | --- | --- | --- |
 | Frontend (Vercel) | **Live** | https://frontend-zeta-topaz-48.vercel.app (also https://frontend-biz-flow8.vercel.app) |
-| Backend (Render) | Not deployed yet | Requires `RENDER_API_KEY` + GitHub repo + Aiven MySQL |
+| Backend (Render) | Not deployed yet | Needs Render API key (CLI blocked by Windows App Control) + Aiven MySQL |
 | Database (Aiven MySQL) | Not provisioned yet | Account action required |
 
-Vercel project: `biz-flow8/frontend`. Production env `API_URL` is set (currently a placeholder until Render is live). SSO deployment protection is disabled so the site is publicly reachable.
+Vercel project: `biz-flow8/frontend`.
+
+- GitHub connected: `MuthukrishnanPerumal/BizFlow` → production branch `main`
+- Project Root Directory: `frontend` (monorepo)
+- Production env `API_URL` is set (placeholder until Render is live)
+- SSO deployment protection disabled (public HTTP 200)
+- Prefer Git pushes for frontend deploys. Local CLI from `frontend/` fails while Root Directory is `frontend` (expected); use a Git-based deploy or deploy from a full-repo context.
+
+Windows blocks `render.exe` (Application Control). Use the dashboard or set `RENDER_API_KEY` and run `deploy/render-create-service.ps1`.
 
 Target stack:
 
@@ -59,6 +67,11 @@ Migrations use MySQL 8 features (`utf8mb4_0900_ai_ci`, stored generated columns,
 ### Create the service
 
 1. Sign up at [https://aiven.io](https://aiven.io) (no credit card required for free MySQL).
+   - If GitHub OAuth fails with **User should verify their email before login**, fix it first:
+     1. Open [GitHub → Settings → Emails](https://github.com/settings/emails).
+     2. Verify the primary email (check inbox/spam for GitHub’s verification mail).
+     3. Do **not** reuse an old OAuth callback URL with `?code=...` — that code is single-use and expired.
+     4. Return to [https://console.aiven.io](https://console.aiven.io) and sign in with GitHub again, **or** use **email + password** signup on Aiven with that same verified address.
 2. Create a project → **Create service** → **MySQL** → plan **Free**.
 3. Choose a region close to your Render region.
 4. Wait until the service is **Running**.

@@ -1,5 +1,5 @@
-﻿export const environment = {
+export const environment = {
   production: true,
-  apiUrl: '/api/v1',
+  apiUrl: "https://aveline-bizflow-api.onrender.com/api/v1",
   authRequired: true,
 };
