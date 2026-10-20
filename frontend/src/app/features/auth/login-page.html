@@ -10,18 +10,17 @@
 
     <div class="field" [class.invalid]="invalid('username')">
       <label class="field-label" for="login-username">Username or email <span class="req" aria-hidden="true">*</span></label>
-      <mat-form-field appearance="outline">
-        <input
-          id="login-username"
-          matInput
-          formControlName="username"
-          autocomplete="username"
-          autocapitalize="none"
-          spellcheck="false"
-          [attr.aria-invalid]="invalid('username')"
-          [attr.aria-describedby]="invalid('username') ? 'login-username-error' : null"
-        />
-      </mat-form-field>
+      <input
+        id="login-username"
+        class="field-input"
+        type="text"
+        formControlName="username"
+        autocomplete="username"
+        autocapitalize="none"
+        spellcheck="false"
+        [attr.aria-invalid]="invalid('username')"
+        [attr.aria-describedby]="invalid('username') ? 'login-username-error' : null"
+      />
       @if (invalid('username')) {
         <p id="login-username-error" class="field-error" role="status">Enter your username or email.</p>
       }
@@ -29,10 +28,10 @@
 
     <div class="field" [class.invalid]="invalid('password')">
       <label class="field-label" for="login-password">Password <span class="req" aria-hidden="true">*</span></label>
-      <mat-form-field appearance="outline">
+      <div class="field-input-wrap">
         <input
           id="login-password"
-          matInput
+          class="field-input has-suffix"
           formControlName="password"
           [type]="passwordVisible() ? 'text' : 'password'"
           autocomplete="current-password"
@@ -40,8 +39,7 @@
           [attr.aria-describedby]="invalid('password') ? 'login-password-error' : null"
         />
         <button
-          mat-icon-button
-          matSuffix
+          class="field-suffix"
           type="button"
           [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
           [attr.aria-pressed]="passwordVisible()"
@@ -49,7 +47,7 @@
         >
           <mat-icon>{{ passwordVisible() ? 'visibility_off' : 'visibility' }}</mat-icon>
         </button>
-      </mat-form-field>
+      </div>
       @if (invalid('password')) {
         <p id="login-password-error" class="field-error" role="status">Enter your password.</p>
       }
