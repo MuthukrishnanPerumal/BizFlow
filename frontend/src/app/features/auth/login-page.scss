@@ -94,6 +94,8 @@ h1 {
 }
 
 .field ::ng-deep .mat-mdc-form-field-flex {
+  align-items: center;
+  min-height: 46px;
   background: #e7f4f3;
   border-radius: 8px;
 }
@@ -106,10 +108,20 @@ h1 {
   border-radius: 0 8px 8px 0 !important;
 }
 
+/* External labels only — neutralize Material floating-label offset so text is vertically centered. */
 .field ::ng-deep .mat-mdc-form-field-infix {
+  display: flex;
+  align-items: center;
+  width: 100%;
   min-height: 46px;
-  padding-top: 12px;
-  padding-bottom: 12px;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.field ::ng-deep .mat-mdc-input-element {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  line-height: 1.25;
 }
 
 .field ::ng-deep .mdc-notched-outline__leading,
